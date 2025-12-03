@@ -2,55 +2,88 @@
 
 简体中文 | [English](/doc/README_EN.md)
 
-把所有虚幻Fab商城免费资产一键入库（可隔一段时间跑一次，自动入库最新的免费资源）
 
->Note: 代码仅在chrome上测试通过，最好直接使用chrome
+# ⚡ UnrealFab 领取助手 Plus (UnrealFabAssistantPlus)
 
-### 如何使用
+## 简介
 
-#### 方式1
-1. 打开油猴设置-实用工具
-2. 在**从URL安装**中粘贴以下链接导入
-3. 打开 [Fab](https://www.fab.com/)，右下角小窗点击Start，等待完成
-```javascript
-https://raw.githubusercontent.com/RyensX/UnrealFabAssistant/refs/heads/main/tampermonkey.js
-```
+**UnrealFabAssistantPlus** 是一个基于 Tampermonkey 的用户脚本，专为 [Fab.com](https://www.fab.com/) 网站设计。它的主要功能是帮助用户**自动扫描**和**自动领取**免费的资产（Free Assets），并将其自动添加到用户的资产库（Library）中。
 
-如果无法访问魔法网络，可以用下方链接（更新可能有延迟）
-```javascript
-https://gh-proxy.com/raw.githubusercontent.com/RyensX/UnrealFabAssistant/refs/heads/main/tampermonkey.js
-```
+此脚本是基于 [RyensX/UnrealFabAssistant](https://github.com/RyensX/UnrealFabAssistant) 项目的迭代增强版本，在此对原作者表示感谢。
 
-#### 方式2
-1. 打开 [Fab](https://www.fab.com/) 并登录
-2. 点击F12打开调试工具并切换到控制台（Console）tab
-3. 复制粘贴下面代码回车等待结束
-```javascript
-fetch('https://raw.githubusercontent.com/RyensX/UnrealFabAssistant/refs/heads/main/run.js').then(r=>r.text()).then(t=>document.head.append(Object.assign(document.createElement('script'),{textContent:t})))
-```
+### 主要特性
 
-如果无法访问魔法网络，可以用下方链接（更新可能有延迟）
+  * **多渠道支持**：支持 Unreal Engine、Unity、UEFN 和 MetaHuman 等多个官方渠道的免费资产扫描和领取。
+  * **双模式运行**：
+      * **快速模式（Fast Mode）**：仅检查最近更新的资产，当连续遇到一定数量（默认 3 页）的已拥有页面时自动停止，以节省时间。
+      * **全量模式（Full Mode）**：扫描所有历史页面，确保不错过任何免费资产。
+  * **智能识别与跳过**：自动检查资产的拥有状态，跳过已拥有的资产。
+  * **人性化 UI**：提供浮动仪表盘（Dashboard）和实时日志（Logs），方便追踪运行状态和结果。
+  * **多语言支持**：支持中文 (`zh-CN`) 和英文 (`en-US`) 界面。
+  * **抗限流重试机制**：内置 HTTP 429 限流处理机制，确保在大批量操作时能够自动等待并重试。
 
-```javascript
-fetch('https://gh-proxy.com/raw.githubusercontent.com/RyensX/UnrealFabAssistant/refs/heads/main/run.js').then(r=>r.text()).then(t=>document.head.append(Object.assign(document.createElement('script'),{textContent:t})))
-```
+## ⚠️ 风险提示
 
-#### 方式3
-1. 打开[run.js](/run.js)复制全部代码到剪切板
-2. 打开 [Fab](https://www.fab.com/) 并登录
-4. 点击F12打开调试工具并切换到控制台（Console）tab
-5. 粘贴刚才复制的代码到输入框，然后回车
-6. 等待日志打印结束即完成入库
+请注意，任何自动化操作都存在一定的风险。使用本脚本意味着您了解并接受可能由于网站政策变动、IP 限速等原因导致的一切后果。请**合理使用**，**避免过于频繁地运行**。
 
-### 已知问题
-- 请求过多提示 "Too many requests."
-    - 如果已经完成所有入库则无需理会
-    - 如果没有，则等待几分钟，然后重试
+## 📥 安装与使用
 
-### 鸣谢
-- https://gist.github.com/jamiephan/0c04986c7f2e62d5c87c4e8c8ce115fc
+### 1\. 准备工作
 
-### 其他
-1. 若有帮助到您，请点击右上角⭐支持一下，感谢使用
-2. 如果进行转载，请注明原出处 https://github.com/RyensX/UnrealFabAssistant
-3. 默认快速模式以时间降序查询物品，若超过3页都没有能添加的物品，则认为该分类已经没有新增的，这可能会错过一些旧的资源突然免费的情况，但是可以方便频繁快速白嫖资源。如果需要关闭快速模式，可以运行前控制台执行 **window.fastMode=false**
+您需要先安装一个支持用户脚本的浏览器扩展，例如：
+
+  * **[Tampermonkey](https://www.tampermonkey.net/)** (推荐)
+  * **[Violentmonkey](https://violentmonkey.github.io/)**
+
+### 2\. 安装脚本
+
+1.  复制本仓库中的 `tampermonkey.js` 文件的全部内容。
+2.  在您的 Tampermonkey 或 Violentmonkey 扩展中，选择“创建新脚本”或类似选项。
+3.  将复制的代码粘贴进去，并保存。
+4.  确保脚本已启用。
+
+### 3\. 使用方法
+
+1.  **登录 Fab.com：** 确保您已经成功登录 Fab.com 网站，这是脚本正常运行的前提。
+2.  **刷新页面：** 登录后刷新任意 Fab.com 页面。
+3.  **语言选择：** 脚本将首次弹出语言选择器，请选择 **🇨🇳 简体中文** 或 **🇺🇸 English (US)**。
+4.  **启动界面：** 脚本界面将显示在页面的右下角。
+5.  **选择渠道：** 在弹出的覆盖层中，勾选您希望扫描的资产渠道（例如 Unreal Engine, Unity）。您可以使用 **“全选 / 反选”** 按钮进行快速操作。
+6.  **选择模式并启动：**
+      * 点击 **🚀 快速模式启动 (仅检查新品)** 开始快速扫描。
+      * 点击 **🐢 全量模式启动 (检查所有)** 开始完整扫描。
+7.  **查看结果：** 脚本开始运行后，覆盖层会消失，您可以在日志区域实时查看扫描进度和领取结果。仪表盘会显示：**已扫描**、**成功入库**、**失败**、**已拥有** 的资产数量。
+8.  **任务结束：** 当所有任务完成后，日志区会提示您**手动刷新页面**以重新运行。
+
+## 📊 状态仪表盘
+
+| 状态名称 | 描述 | 对应颜色 |
+| :--- | :--- | :--- |
+| **已扫描 (Scanned)** | 脚本已检查的资产总数。 | 默认色 |
+| **成功入库 (Success)** | 成功领取并添加到资产库的免费资产数量。 | 绿色 |
+| **失败 (Failed)** | 由于各种原因（如领取失败、无免费许可）导致入库失败的资产数量。 | 红色 |
+| **已拥有 (Skipped)** | 脚本检测到您已拥有并跳过的资产数量。 | 橙色 |
+
+## ⚙️ 配置说明 (硬编码)
+
+以下是脚本中硬编码的默认配置，您可以根据需要自行修改脚本中的对应值：
+
+| 配置项 | 默认值 | 描述 |
+| :--- | :--- | :--- |
+| `maxEmptyPagesLimit` | 3 | 在**快速模式**下，连续遇到多少页已拥有资产后停止当前分类的扫描。 |
+| `requestDelay.min` | 1200 ms | 每次尝试领取资产之间的**最小**随机延迟时间。 |
+| `requestDelay.max` | 3000 ms | 每次尝试领取资产之间的**最大**随机延迟时间。 |
+| `retry.limit` | 3 | 遇到网络错误（非 429）时的最大重试次数。 |
+| `retry.delayMs` | 2000 ms | 重试之间的等待时间。 |
+
+## 🛠️ 依赖
+
+  * 现代浏览器（如 Chrome, Firefox, Edge）
+  * Tampermonkey 或 Violentmonkey 浏览器扩展
+  * Fab.com 账户和有效的登录状态
+
+-----
+
+\<p align="center"\>感谢使用，祝您使用愉快！\</p\>
+\<p align="right"\>项目迭代者: Sakurairinaqwq\</p\>
+\<p align="right"\>原作者: RyensX\</p\>
