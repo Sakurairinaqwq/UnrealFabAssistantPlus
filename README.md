@@ -84,6 +84,6 @@
 
 -----
 
-\<p align="center"\>感谢使用，祝您使用愉快！\</p\>
-\<p align="right"\>项目迭代者: Sakurairinaqwq\</p\>
-\<p align="right"\>原作者: RyensX\</p\>
+<p align="center"\>感谢使用，祝您使用愉快！</p\>
+<p align="right"\>项目迭代者: Sakurairinaqwq</p\>
+<p align="right"\>原作者: RyensX</p\>
