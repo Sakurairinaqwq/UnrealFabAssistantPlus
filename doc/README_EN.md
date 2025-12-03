@@ -87,6 +87,6 @@ The following are the hardcoded default settings within the script. You may modi
 
 -----
 
-\<p align="center"\>Thank you for using the script\!\</p\>
-\<p align="right"\>Project Iteration by: Sakurairinaqwq\</p\>
-\<p align="right"\>Original Author: RyensX\</p\>
+<p align="center"\>Thank you for using the script!</p>
+<p align="right"\>Project Iteration by: Sakurairinaqwq</p>
+<p align="right"\>Original Author: RyensX</p>
