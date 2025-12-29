@@ -7,128 +7,132 @@
 // @match        https://www.fab.com/*
 // @grant        none
 // @license      GPL-3.0
+// @icon         https://www.fab.com/favicon.ico
 // ==/UserScript==
 
-/**
- * (function () { ... })(); 是一个立即执行函数表达式 (IIFE)，用于创建一个私有作用域，防止污染全局环境。
- * The (function () { ... })(); is an Immediately Invoked Function Expression (IIFE)
- * used to create a private scope and prevent polluting the global environment.
- */
 (function () {
     'use strict';
 
+    // Startup Logging
+    console.log("[UnrealFabAssistantPlus] v3.6.0 Initializing...");
+
     // ==========================================
-    // 🌍 LANGUAGE PACKS / 语言包
+    // Localization Configuration
     // ==========================================
-    /**
-     * LANGUAGE_PACKS: 存储所有 UI 文本的本地化字符串。
-     * LANGUAGE_PACKS: Stores localized strings for all UI texts.
-     */
     const LANGUAGE_PACKS = {
         'en-US': {
-            // General
-            TITLE: '⚡ UnrealFab Helper v3.2.2',
-            MINIMIZE: 'Minimize/Restore',
+            TITLE: '⚡ UnrealFab Helper',
+            MINIMIZE: 'Minimize',
             CLOSE: 'Close',
-
-            // Dashboard
             SCANNED: 'Scanned',
             SUCCESS: 'Success',
             FAILED: 'Failed',
             SKIPPED: 'Owned',
+            SCANNING_CHANNELS: '🎯 Target Channels',
+            FILTER_SETTINGS: '⚙️ Quality Filter',
+            ENABLE_RATING_FILTER: 'Skip Low Rating',
+            MIN_RATING_LABEL: 'Min Score:',
+            SELECT_ALL_INVERT: 'Select All / Invert',
+            FAST_MODE_START: '🚀 Fast Mode',
+            FAST_MODE_DETAIL: 'New Only',
+            FULL_MODE_START: '🐢 Full Mode',
+            FULL_MODE_DETAIL: 'Check All',
+            ALERT_NO_CHANNEL: 'Please select at least one channel!',
+            AUTH_SOUL_QUESTION: 'Logged in? Are you sure? Check again?',
 
-            // Overlay
-            SCANNING_CHANNELS: '✅ Scanning Channels:',
-            SELECT_ALL_INVERT: 'Select All / Invert Selection',
-            FAST_MODE_START: '🚀 Fast Mode Start',
-            FAST_MODE_DETAIL: '(Check for New)',
-            FULL_MODE_START: '🐢 Full Mode Start',
-            FULL_MODE_DETAIL: '(Check All)',
-            ALERT_NO_CHANNEL: 'Please select at least one channel to scan!',
+            // Log Templates
+            SCRIPT_START: (mode) => `System initialized | Mode: ${mode}`,
+            SELECTED_CHANNELS: (channels) => `Targeting: ${channels}`,
+            AUTH_ERROR: '❌ Auth Error: Not logged in or Cookie expired.',
+            PROCESSING_CATEGORY: (name) => `\n📂 Category: ${name}`,
+            PAGE_SCANNING: (channel, page, items) => `📄 ${channel} [Page ${page}] Scanning ${items} items...`,
+            PAGE_FAILED: (name) => `Failed to retrieve data for ${name}.`,
+            PAGE_FULLY_OWNED: (count) => `   ↳ Page cleared (Empty streak: ${count})`,
+            ITEMS_FOUND: (count) => `   ↳ Discovered ${count} new items!`,
+            FAST_MODE_LIMIT: '⏸️ Fast Mode limit reached.',
+            RATING_SKIPPED: (title, score, count) => `   ⚠️ Low Rating: ${title} [${score}⭐/${count}]`,
 
-            // Logs
-            SCRIPT_START: (mode) => `Script started | Mode: ${mode}`,
-            SELECTED_CHANNELS: (channels) => `🚀 Selected Channels: ${channels}`,
-            AUTH_ERROR: '❌ Not logged in or Cookie expired. Please refresh the page and try again.',
-            PROCESSING_CATEGORY: (name) => `\n📂 Processing category: ${name}`,
-            PAGE_SCANNING: (channel, page, items) => `📄 ${channel} Page ${page}: Scanning ${items} items...`,
-            PAGE_FAILED: (name) => `Failed to get page data for ${name}, stopping this category.`,
-            PAGE_FULLY_OWNED: (count) => `   ↳ Page fully owned (Consecutive empty pages: ${count})`,
-            ITEMS_FOUND: (count) => `   ↳ Found ${count} new items!`,
-            FAST_MODE_LIMIT: '⏸️ Fast Mode limit triggered (Max empty pages reached), skipping further pages.',
-            CLAIM_SUCCESS: (title) => `   ✅ Claimed successfully: ${title}`,
-            CLAIM_NO_LICENSE: (title) => `   ⚠️ ${title}: No free license available.`,
-            CLAIM_FETCH_DETAIL_FAIL: (title) => `   ⚠️ ${title}: Failed to get details or licenses.`,
-            CLAIM_FAILED: (status, title) => `   ❌ Claim failed (${status}): ${title}`,
-            CLAIM_EXCEPTION: (title, error) => `   ❌ Exception during claim: ${title} (${error})`,
-            OWNERSHIP_ERROR: 'Error checking ownership status, assuming no ownership for safety.',
-            RATE_LIMIT: (wait) => `⏳ Rate limit triggered (429), waiting for ${wait}s before retrying...`,
-            ALL_FINISHED: (count) => `\n🎉 All tasks completed! Successfully claimed: ${count}`,
-            RELOAD_PROMPT: 'All tasks finished! Please refresh the page manually to rerun.'
+            // Claim Status
+            CLAIM_SUCCESS: (title) => `   ✅ Claimed: ${title}`,
+            CLAIM_NO_LICENSE: (title) => `   ⚠️ ${title}: No free license found.`,
+            CLAIM_FETCH_DETAIL_FAIL: (title) => `   ⚠️ ${title}: Detail fetch failed.`,
+            CLAIM_FAILED: (status, title) => `   ❌ Failed (${status}): ${title}`,
+            CLAIM_EXCEPTION: (title, error) => `   ❌ Exception: ${title} (${error})`,
+            OWNERSHIP_ERROR: 'Ownership check error, assuming unowned.',
+            RATE_LIMIT: (wait) => `⏳ Rate Limit (429) - Pausing for ${wait}s...`,
+            ALL_FINISHED: (count) => `\n🎉 Operation Complete! Claimed: ${count}`,
+            RELOAD_PROMPT: 'Done. Please refresh the page.'
         },
 
         'zh-CN': {
-            // General
-            TITLE: '⚡ UnrealFab 领取助手 v3.2.2',
-            MINIMIZE: '最小化/还原',
+            TITLE: '⚡ FAB 领取助手',
+            MINIMIZE: '最小化',
             CLOSE: '关闭',
-
-            // Dashboard
             SCANNED: '已扫描',
             SUCCESS: '成功入库',
             FAILED: '失败',
             SKIPPED: '已拥有',
-
-            // Overlay
-            SCANNING_CHANNELS: '✅ 扫描渠道：',
+            SCANNING_CHANNELS: '🎯 扫描渠道',
+            FILTER_SETTINGS: '⚙️ 质量过滤',
+            ENABLE_RATING_FILTER: '跳过低分资产',
+            MIN_RATING_LABEL: '最低评分：',
             SELECT_ALL_INVERT: '全选 / 反选',
-            FAST_MODE_START: '🚀 快速模式启动',
-            FAST_MODE_DETAIL: '(仅检查新品)',
-            FULL_MODE_START: '🐢 全量模式启动',
-            FULL_MODE_DETAIL: '(检查所有)',
-            ALERT_NO_CHANNEL: '请至少选择一个要扫描的渠道！',
+            FAST_MODE_START: '🚀 快速模式',
+            FAST_MODE_DETAIL: '仅检查新品',
+            FULL_MODE_START: '🐢 全量模式',
+            FULL_MODE_DETAIL: '地毯式搜索',
+            ALERT_NO_CHANNEL: '请至少选择一个渠道！',
+            AUTH_SOUL_QUESTION: '你登录了？你确定？你再检查一次？',
 
-            // Logs
-            SCRIPT_START: (mode) => `脚本已启动 | 模式：${mode}`,
-            SELECTED_CHANNELS: (channels) => `🚀 已选择渠道：${channels}`,
-            AUTH_ERROR: '❌ 未登录或 Cookie 失效，请刷新页面后重试',
+            // Log Templates
+            SCRIPT_START: (mode) => `系统已启动 | 模式：${mode}`,
+            SELECTED_CHANNELS: (channels) => `目标渠道：${channels}`,
+            AUTH_ERROR: '❌ 鉴权失败：未登录或 Cookie 失效',
             PROCESSING_CATEGORY: (name) => `\n📂 正在处理分类：${name}`,
-            PAGE_SCANNING: (channel, page, items) => `📄 ${channel} 第 ${page} 页：扫描 ${items} 个资产...`,
-            PAGE_FAILED: (name) => `获取 ${name} 页面数据失败，停止当前分类`,
-            PAGE_FULLY_OWNED: (count) => `   ↳ 本页资产均已拥有（连续空页：${count}）`,
+            PAGE_SCANNING: (channel, page, items) => `📄 ${channel} [第 ${page} 页] 扫描 ${items} 个物品...`,
+            PAGE_FAILED: (name) => `获取 ${name} 数据失败`,
+            PAGE_FULLY_OWNED: (count) => `   ↳ 本页无新物品（连续空页：${count}）`,
             ITEMS_FOUND: (count) => `   ↳ 发现 ${count} 个新资产！`,
-            FAST_MODE_LIMIT: '⏸️ 快速模式限制触发（达到最大空页数），跳过后续页面',
+            FAST_MODE_LIMIT: '⏸️ 触发快速模式上限，停止当前分类',
+            RATING_SKIPPED: (title, score, count) => `   ⚠️ 评分过低跳过: ${title} [${score}分/${count}评]`,
+
+            // Claim Status
             CLAIM_SUCCESS: (title) => `   ✅ 成功入库：${title}`,
-            CLAIM_NO_LICENSE: (title) => `   ⚠️ ${title}: 无免费许可可用`,
-            CLAIM_FETCH_DETAIL_FAIL: (title) => `   ⚠️ ${title}: 获取详情或许可失败`,
+            CLAIM_NO_LICENSE: (title) => `   ⚠️ ${title}: 无免费许可`,
+            CLAIM_FETCH_DETAIL_FAIL: (title) => `   ⚠️ ${title}: 详情获取失败`,
             CLAIM_FAILED: (status, title) => `   ❌ 入库失败 (${status})：${title}`,
-            CLAIM_EXCEPTION: (title, error) => `   ❌ 领取时发生异常：${title} (${error})`,
-            OWNERSHIP_ERROR: '检查拥有状态出错，为安全起见假设未拥有。',
-            RATE_LIMIT: (wait) => `⏳ 触发限流 (429)，等待 ${wait} 秒后重试...`,
-            ALL_FINISHED: (count) => `\n🎉 所有任务完成！成功入库：${count} 个`,
-            RELOAD_PROMPT: '所有任务完成！请手动刷新页面重新运行。'
+            CLAIM_EXCEPTION: (title, error) => `   ❌ 异常：${title} (${error})`,
+            OWNERSHIP_ERROR: '所有权检查错误，尝试强制领取。',
+            RATE_LIMIT: (wait) => `⏳ 触发限流 (429)，暂停 ${wait} 秒...`,
+            ALL_FINISHED: (count) => `\n🎉 任务完成！本次入库：${count} 个`,
+            RELOAD_PROMPT: '运行结束！请刷新页面重置。'
         }
     };
 
+    // Auto-detect browser language
     let CURRENT_LANG = 'en-US';
+    try {
+        if (navigator.language && navigator.language.includes('zh')) {
+            CURRENT_LANG = 'zh-CN';
+        }
+    } catch (e) {
+        console.warn("[UnrealFabAssistantPlus] Language detection failed, defaulting to EN.");
+    }
 
     // ==========================================
-    // ⚙️ GLOBAL CONFIGURATION / 全局配置
+    // Global Settings
     // ==========================================
     const SCRIPT_SETTINGS = {
         isFastMode: true,
         maxEmptyPagesLimit: 3,
-        requestDelay: {
-            min: 1200,
-            max: 3000,
-        },
-        retry: {
-            limit: 3,
-            delayMs: 2000,
-        }
+        // Rating Filter Config
+        enableRatingFilter: false,
+        minRating: 3.5,
+        // Delay Settings (ms)
+        requestDelay: { min: 1200, max: 3000 },
+        retry: { limit: 3, delayMs: 2000 }
     };
 
-    // 🌐 SCANNING CHANNELS / 可扫描的渠道列表配置
     const CHANNEL_LIST = [
         { name: 'Unreal Engine', urlParam: 'unreal-engine', isFree: true, isDefaultChecked: true },
         { name: 'Unity', urlParam: 'unity', isFree: true, isDefaultChecked: true },
@@ -137,7 +141,7 @@
     ];
 
     // ==========================================
-    // 📊 STATE MANAGEMENT / 状态管理
+    // Runtime State Tracking
     // ==========================================
     const RUNTIME_STATE = {
         totalScanned: 0,
@@ -157,14 +161,14 @@
     };
 
     // ==========================================
-    // 🎨 UI MODULE / UI 界面模块
+    // UI Controller
     // ==========================================
     const UserInterface = {
         rootElement: null,
         logContainer: null,
         dashboardElements: null,
         isWindowMinimized: false,
-        AUTO_SCROLL_THRESHOLD: 50,
+        AUTO_SCROLL_THRESHOLD: 60,
 
         getText(key, ...args) {
             const text = LANGUAGE_PACKS[CURRENT_LANG][key];
@@ -175,137 +179,305 @@
         },
 
         init() {
-            this.injectStyles();
-            // 启动时先等待语言选择
-            LanguageSelector.show().then(selectedLang => {
-                CURRENT_LANG = selectedLang;
+            try {
+                this.injectStyles();
                 this.renderInterface();
-            });
+                console.log("[UnrealFabAssistantPlus] UI Initialized.");
+            } catch (e) {
+                console.error("UI Initialization failed:", e);
+                // Fallback alert if UI fails to render
+                alert("UnrealFabAssistantPlus UI Error: " + e.message);
+            }
         },
 
         injectStyles() {
             const css = `
-                /* 🚀 UI 放大优化 & 位置调整 / UI Scaling Optimization & Position Adjustment */
+                /* Main Container Styles - Professional Dark Mode */
                 #fab-helper-root {
-                    font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-                    font-size: 14px; line-height: 1.4; position: fixed;
-                    /* 底部距离调整为 100px */
-                    bottom: 100px;
-                    right: 50px; width: 500px;
-                    max-height: calc(100vh - 150px);
-                    background: #1e1e1e; color: #e0e0e0;
-                    border-radius: 8px; border: 1px solid #333;
-                    box-shadow: 0 8px 30px rgba(0,0,0,0.6);
-                    z-index: 999999; display: flex; flex-direction: column;
-                    transition: all 0.3s ease;
-                }
-
-                /* ------------------------------------------- */
-                /* 🌐 语言选择器样式优化 / Language Selector Style Optimization */
-                /* ------------------------------------------- */
-                #language-selector-overlay {
-                    position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-                    background: rgba(0, 0, 0, 0.8); /* 半透明黑色背景 */
-                    z-index: 1000000;
-                    display: flex; justify-content: center; align-items: center;
-                }
-
-                #language-selector {
-                    width: 350px;
-                    padding: 30px;
-                    background: #252526; /* 使用比根元素更深的背景 */
+                    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+                    font-size: 14px;
+                    line-height: 1.5;
+                    position: fixed;
+                    bottom: 60px;
+                    right: 40px;
+                    width: 500px;
+                    height: 75vh;
+                    max-height: 850px;
+                    min-height: 400px;
+                    background: rgba(25, 25, 30, 0.98);
                     color: #e0e0e0;
-                    border-radius: 12px;
-                    box-shadow: 0 15px 50px rgba(0,0,0,0.9); /* 更明显的阴影 */
-                    text-align: center;
-                    border: 1px solid #4CAF50; /* 突出主题色边框 */
+                    border-radius: 20px;
+                    border: 1px solid rgba(255, 255, 255, 0.1);
+                    box-shadow: 0 25px 80px rgba(0, 0, 0, 0.8), 0 0 0 1px rgba(255,255,255,0.05);
+                    z-index: 2147483647; /* Max Z-Index to prevent overlay issues */
                     display: flex;
                     flex-direction: column;
-                    gap: 20px;
-                }
-                #language-selector h3 {
-                    color: #4CAF50;
-                    margin-top: 0;
-                    font-size: 18px;
-                    border-bottom: 1px solid #333;
-                    padding-bottom: 10px;
-                    font-weight: 700;
+                    transition: width 0.3s, height 0.3s;
+                    overflow: hidden;
                 }
 
-                .language-buttons {
-                    display: flex;
-                    justify-content: center;
-                    gap: 20px;
-                }
-
-                #language-selector button {
-                    padding: 12px 25px;
-                    margin: 0;
-                    border: none;
-                    border-radius: 6px;
-                    font-weight: 700;
-                    font-size: 15px;
+                /* Minimized 'Pill' State */
+                #fab-helper-root.minimized {
+                    width: 220px !important;
+                    height: 60px !important;
+                    min-height: 0 !important;
+                    bottom: 40px;
+                    right: 40px;
+                    padding: 0;
+                    border-radius: 50px;
+                    background: linear-gradient(135deg, #4CAF50 0%, #2E7D32 100%);
+                    box-shadow: 0 10px 30px rgba(76, 175, 80, 0.5);
                     cursor: pointer;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                }
+
+                /* Header adjustments in minimized mode */
+                #fab-helper-root.minimized .fh-header {
+                    background: transparent;
+                    padding: 0;
+                    border: none;
+                    width: 100%;
+                    justify-content: center;
+                }
+
+                #fab-helper-root.minimized .fh-title {
                     color: white;
-                    flex: 1; /* 平分空间 */
-                    /* 使用与 Fast Mode 相似的绿色渐变 */
-                    background: linear-gradient(135deg, #4CAF50 0%, #388E3C 100%);
-                    transition: transform 0.1s, opacity 0.2s, box-shadow 0.2s;
+                    font-size: 15px;
+                    margin: 0;
+                    text-shadow: none;
+                    white-space: nowrap;
                 }
-                #language-selector button:hover {
-                    opacity: 0.9;
-                    box-shadow: 0 0 15px rgba(76, 175, 80, 0.5); /* 绿色光影效果 */
-                }
-                #language-selector button:active {
-                    transform: scale(0.98);
-                }
-                /* ------------------------------------------- */
 
+                /* Hide content when minimized */
+                #fab-helper-root.minimized .fh-controls,
+                #fab-helper-root.minimized .fh-dashboard,
+                #fab-helper-root.minimized .fh-logs,
+                #fab-helper-root.minimized .fh-overlay {
+                    display: none !important;
+                }
 
-                .fh-header { padding: 12px 18px; background: #252526; border-bottom: 1px solid #333; display: flex; justify-content: space-between; align-items: center; border-radius: 8px 8px 0 0; user-select: none; }
-                .fh-title { font-weight: 700; color: #4CAF50; font-size: 16px; }
-                .fh-controls button { background: none; border: none; color: #888; cursor: pointer; font-size: 18px; padding: 0 8px; transition: color 0.2s; }
-                .fh-controls button:hover { color: #fff; }
-                .fh-dashboard { display: grid; grid-template-columns: repeat(4, 1fr); padding: 10px 12px; background: #2d2d2d; border-bottom: 1px solid #333; text-align: center; font-size: 13px; }
-                .fh-stat-item { display: flex; flex-direction: column; }
-                .fh-stat-val { font-weight: bold; font-size: 18px; color: #fff; }
-                .fh-stat-label { color: #888; font-size: 11px; text-transform: uppercase; }
-                .fh-logs { flex: 1; overflow-y: auto; padding: 12px; background: #1e1e1e; font-family: 'Consolas', monospace; font-size: 13px; height: 280px; }
-                .fh-logs::-webkit-scrollbar { width: 8px; }
-                .fh-logs::-webkit-scrollbar-thumb { background: #555; border-radius: 4px; }
-                .fh-log-entry { margin-bottom: 5px; border-bottom: 1px dashed #2a2a2a; padding-bottom: 3px; }
-                .fh-time { color: #666; margin-right: 10px; font-size: 12px; }
-                .fh-overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(20, 20, 20, 0.95); display: flex; flex-direction: column; justify-content: flex-start; align-items: center; gap: 15px; z-index: 10; border-radius: 8px; padding: 20px; }
-                .fh-top-controls, .fh-bottom-controls { display: flex; width: 100%; justify-content: center; gap: 15px; margin-bottom: 5px; }
+                /* Header & Controls */
+                .fh-header {
+                    padding: 16px 24px;
+                    background: rgba(255, 255, 255, 0.05);
+                    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: center;
+                    user-select: none;
+                }
+
+                .fh-title {
+                    font-weight: 800;
+                    color: #4CAF50;
+                    font-size: 16px;
+                }
+
+                .fh-controls {
+                    display: flex;
+                    gap: 8px;
+                }
+
+                .fh-controls button {
+                    background: rgba(255,255,255,0.05);
+                    border: none;
+                    color: #aaa;
+                    cursor: pointer;
+                    width: 30px;
+                    height: 30px;
+                    border-radius: 8px;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    font-size: 14px;
+                }
+
+                .fh-controls button:hover {
+                    background: rgba(255,255,255,0.2);
+                    color: white;
+                }
+
+                /* Red Close Button */
+                #fh-close-btn:hover {
+                    background: #ff4757 !important;
+                    color: white !important;
+                }
+
+                /* Dashboard Stats */
+                .fh-dashboard {
+                    display: grid;
+                    grid-template-columns: repeat(4, 1fr);
+                    gap: 12px;
+                    padding: 16px 24px;
+                }
+
+                .fh-stat-item {
+                    display: flex;
+                    flex-direction: column;
+                    align-items: center;
+                    background: rgba(0,0,0,0.3);
+                    padding: 10px;
+                    border-radius: 12px;
+                    border: 1px solid rgba(255,255,255,0.05);
+                }
+
+                .fh-stat-val {
+                    font-weight: 800;
+                    font-size: 18px;
+                    color: #fff;
+                    margin-bottom: 2px;
+                }
+
+                .fh-stat-label {
+                    color: #888;
+                    font-size: 10px;
+                    font-weight: 700;
+                    text-transform: uppercase;
+                }
+
+                /* Log Console */
+                .fh-logs {
+                    flex: 1;
+                    overflow-y: auto;
+                    padding: 12px 24px;
+                    background: rgba(0,0,0,0.2);
+                    font-family: 'Consolas', 'Monaco', monospace;
+                    font-size: 13px;
+                }
+
+                .fh-logs::-webkit-scrollbar {
+                    width: 6px;
+                }
+
+                .fh-logs::-webkit-scrollbar-thumb {
+                    background: rgba(255,255,255,0.15);
+                    border-radius: 3px;
+                }
+
+                .fh-log-entry {
+                    margin-bottom: 6px;
+                    padding-bottom: 6px;
+                    border-bottom: 1px solid rgba(255,255,255,0.05);
+                }
+
+                /* Settings Overlay */
+                .fh-overlay {
+                    position: absolute;
+                    top: 62px;
+                    left: 0;
+                    width: 100%;
+                    height: calc(100% - 62px);
+                    background: #19191e;
+                    padding: 20px 24px;
+                    box-sizing: border-box;
+                    z-index: 10;
+                    overflow-y: auto;
+                    border-radius: 0 0 20px 20px;
+                    display: flex;
+                    flex-direction: column;
+                }
+
+                .fh-section-title {
+                    color: #4CAF50;
+                    font-size: 12px;
+                    font-weight: 700;
+                    text-transform: uppercase;
+                    margin: 20px 0 10px;
+                    border-bottom: 1px solid rgba(76, 175, 80, 0.3);
+                    padding-bottom: 5px;
+                }
+
+                .fh-section-title:first-child {
+                    margin-top: 0;
+                }
+
+                .fh-channel-list {
+                    display: grid;
+                    grid-template-columns: repeat(2, 1fr);
+                    gap: 10px;
+                    margin-bottom: 15px;
+                }
+
+                .fh-channel-item {
+                    display: flex;
+                    align-items: center;
+                    gap: 10px;
+                    padding: 10px;
+                    background: rgba(255,255,255,0.05);
+                    border-radius: 10px;
+                    cursor: pointer;
+                    color: #ccc;
+                }
+
+                .fh-channel-item:hover {
+                    background: rgba(255,255,255,0.1);
+                    color: white;
+                }
+
+                .fh-channel-item input {
+                    accent-color: #4CAF50;
+                    transform: scale(1.2);
+                    cursor: pointer;
+                }
+
+                .fh-settings-row {
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: center;
+                    background: rgba(255,255,255,0.05);
+                    padding: 12px 16px;
+                    border-radius: 10px;
+                    margin-bottom: 20px;
+                }
+
+                .fh-input-num {
+                    width: 50px;
+                    background: rgba(0,0,0,0.3);
+                    border: 1px solid rgba(255,255,255,0.1);
+                    color: white;
+                    padding: 5px;
+                    text-align: center;
+                    border-radius: 6px;
+                }
+
+                .fh-btn-group {
+                    display: flex;
+                    gap: 12px;
+                    margin-top: auto;
+                }
 
                 .fh-btn {
-                    padding: 12px 0; border: none; border-radius: 4px;
-                    font-weight: 600; cursor: pointer; color: white;
-                    flex-grow: 1; min-width: 150px;
-                    transition: transform 0.1s, opacity 0.2s;
-                    display: flex; align-items: center; justify-content: center;
+                    flex: 1;
+                    padding: 14px;
+                    border: none;
+                    border-radius: 12px;
+                    font-weight: 700;
+                    color: white;
+                    cursor: pointer;
+                    display: flex;
+                    flex-direction: column;
+                    align-items: center;
                 }
-                .fh-btn:hover:not(:disabled) { opacity: 0.9; }
-                .fh-btn:active:not(:disabled) { transform: scale(0.98); }
-                .fh-btn:disabled { cursor: not-allowed; opacity: 0.5; }
-                .btn-green { background: linear-gradient(135deg, #4CAF50 0%, #45a049 100%); }
-                .btn-blue { background: linear-gradient(135deg, #2196F3 0%, #1976D2 100%); }
-                .fh-btn small { font-weight: normal; margin-left: 10px; opacity: 0.8; font-size: 12px; }
 
-                #btn-select-all {
-                    padding: 8px 12px; border: none; border-radius: 4px;
-                    font-size: 13px; font-weight: 600; cursor: pointer; color: white;
-                    margin-top: 0px;
-                    min-width: 150px;
-                    background: linear-gradient(135deg, #4CAF50 0%, #45a049 100%);
-                    transition: opacity 0.2s;
+                .fh-btn:disabled {
+                    opacity: 0.5;
+                    cursor: not-allowed;
                 }
-                #btn-select-all:hover { opacity: 0.9; }
 
-                .fh-channel-list { padding: 15px; background: #2d2d2d; border-radius: 4px; display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px 20px; flex-grow: 1; }
-                .fh-channel-item { display: flex; align-items: center; gap: 6px; font-size: 13px; cursor: pointer; }
-                .fh-channel-item input[type="checkbox"] { margin-right: 6px; transform: scale(1.1); }
-                #fab-helper-root.minimized { height: 48px; overflow: hidden; }
+                .btn-green { background: #4CAF50; }
+                .btn-blue { background: #2196F3; }
+                .btn-gray {
+                    width: 100%;
+                    padding: 10px;
+                    background: rgba(255,255,255,0.1);
+                    border-radius: 8px;
+                    border: none;
+                    color: #ddd;
+                    cursor: pointer;
+                    font-weight: 600;
+                }
             `;
             const style = document.createElement('style');
             style.textContent = css;
@@ -318,9 +490,7 @@
 
             const channelCheckboxesHTML = CHANNEL_LIST.map(c => `
                 <label class="fh-channel-item">
-                    <input type="checkbox" id="channel-${c.urlParam}"
-                           data-url="${c.urlParam}"
-                           ${c.isDefaultChecked ? 'checked' : ''}>
+                    <input type="checkbox" data-url="${c.urlParam}" ${c.isDefaultChecked ? 'checked' : ''}>
                     ${c.name}
                 </label>
             `).join('');
@@ -329,7 +499,7 @@
                 <div class="fh-header">
                     <div class="fh-title">${this.getText('TITLE')}</div>
                     <div class="fh-controls">
-                        <button id="fh-min-btn" title="${this.getText('MINIMIZE')}">➖</button>
+                        <button id="fh-min-btn" title="${this.getText('MINIMIZE')}">－</button>
                         <button id="fh-close-btn" title="${this.getText('CLOSE')}">✕</button>
                     </div>
                 </div>
@@ -337,38 +507,49 @@
                 <div class="fh-dashboard">
                     <div class="fh-stat-item"><span class="fh-stat-val" id="stat-scanned">0</span><span class="fh-stat-label">${this.getText('SCANNED')}</span></div>
                     <div class="fh-stat-item"><span class="fh-stat-val" style="color:#4CAF50" id="stat-success">0</span><span class="fh-stat-label">${this.getText('SUCCESS')}</span></div>
-                    <div class="fh-stat-item"><span class="fh-stat-val" style="color:#f44336" id="stat-failed">0</span><span class="fh-stat-label">${this.getText('FAILED')}</span></div>
+                    <div class="fh-stat-item"><span class="fh-stat-val" style="color:#ff6b6b" id="stat-failed">0</span><span class="fh-stat-label">${this.getText('FAILED')}</span></div>
                     <div class="fh-stat-item"><span class="fh-stat-val" style="color:#FF9800" id="stat-skipped">0</span><span class="fh-stat-label">${this.getText('SKIPPED')}</span></div>
                 </div>
 
                 <div class="fh-logs" id="fh-logs"></div>
 
                 <div class="fh-overlay" id="fh-overlay">
+                    <div class="fh-section-title">${this.getText('SCANNING_CHANNELS')}</div>
+                    <div class="fh-channel-list">${channelCheckboxesHTML}</div>
+                    <button class="btn-gray" id="btn-select-all">${this.getText('SELECT_ALL_INVERT')}</button>
 
-                    <div class="fh-top-controls">
-                        <div style="color:#e0e0e0; font-size:15px; margin-right: 15px; white-space: nowrap; align-self: flex-start; padding-top: 15px;">${this.getText('SCANNING_CHANNELS')}</div>
-
-                        <div class="fh-channel-list">
-                            ${channelCheckboxesHTML}
+                    <div class="fh-section-title">${this.getText('FILTER_SETTINGS')}</div>
+                    <div class="fh-settings-row">
+                        <label style="display:flex;align-items:center;cursor:pointer;color:#e0e0e0;font-size:13px;">
+                            <input type="checkbox" id="setting-rating-enable" style="margin-right:10px;accent-color:#4CAF50;transform:scale(1.2);">
+                            ${this.getText('ENABLE_RATING_FILTER')}
+                        </label>
+                        <div id="rating-input-container" style="opacity:0.4; pointer-events:none; transition:opacity 0.2s; display:flex; align-items:center; gap:8px;">
+                            <span style="font-size:12px;color:#ccc;">${this.getText('MIN_RATING_LABEL')}</span>
+                            <input type="number" id="setting-rating-val" class="fh-input-num" value="3.5" step="0.1" min="0" max="5">
                         </div>
                     </div>
 
-                    <button id="btn-select-all">
-                        ${this.getText('SELECT_ALL_INVERT')}
-                    </button>
-
-                    <div class="fh-bottom-controls">
+                    <div class="fh-btn-group">
                         <button class="fh-btn btn-green" id="btn-fast">
-                            ${this.getText('FAST_MODE_START')} <small>${this.getText('FAST_MODE_DETAIL')}</small>
+                            <span>${this.getText('FAST_MODE_START')}</span>
+                            <small>${this.getText('FAST_MODE_DETAIL')}</small>
                         </button>
                         <button class="fh-btn btn-blue" id="btn-full">
-                            ${this.getText('FULL_MODE_START')} <small>${this.getText('FULL_MODE_DETAIL')}</small>
+                            <span>${this.getText('FULL_MODE_START')}</span>
+                            <small>${this.getText('FULL_MODE_DETAIL')}</small>
                         </button>
                     </div>
                 </div>
             `;
 
-            document.body.appendChild(this.rootElement);
+            // Append to body with a simple check
+            if (document.body) {
+                document.body.appendChild(this.rootElement);
+            } else {
+                console.error("Document body not available. UI injection deferred.");
+                setTimeout(() => { if(document.body) document.body.appendChild(this.rootElement); }, 1500);
+            }
 
             this.logContainer = this.rootElement.querySelector('#fh-logs');
             this.dashboardElements = {
@@ -382,11 +563,44 @@
         },
 
         bindEvents() {
-            this.rootElement.querySelector('#fh-close-btn').onclick = () => this.rootElement.remove();
-            this.rootElement.querySelector('#fh-min-btn').onclick = () => this.toggleMinimize();
-            this.rootElement.querySelector('#btn-select-all').onclick = () => this.toggleAllChannels();
-            this.rootElement.querySelector('#btn-fast').onclick = () => this.startScan(true);
-            this.rootElement.querySelector('#btn-full').onclick = () => this.startScan(false);
+            const els = this.rootElement;
+            if(!els) return;
+
+            // Minimize toggle on container click (only works when minimized)
+            els.onclick = (e) => {
+                if (this.isWindowMinimized) {
+                    this.toggleMinimize();
+                    e.stopPropagation();
+                }
+            };
+
+            // Prevent event propagation for internal clicks
+            els.querySelector('.fh-dashboard').onclick = (e) => e.stopPropagation();
+            els.querySelector('.fh-logs').onclick = (e) => e.stopPropagation();
+            els.querySelector('.fh-overlay').onclick = (e) => e.stopPropagation();
+
+            // Header Button Events
+            els.querySelector('#fh-close-btn').onclick = (e) => {
+                e.stopPropagation();
+                if(confirm("Exit Helper?")) els.remove();
+            };
+
+            els.querySelector('#fh-min-btn').onclick = (e) => {
+                e.stopPropagation();
+                this.toggleMinimize();
+            };
+
+            els.querySelector('#btn-select-all').onclick = () => this.toggleAllChannels();
+            els.querySelector('#btn-fast').onclick = () => this.prepareAndStart(true);
+            els.querySelector('#btn-full').onclick = () => this.prepareAndStart(false);
+
+            // Rating Checkbox Toggle
+            const ratingCheck = els.querySelector('#setting-rating-enable');
+            const ratingContainer = els.querySelector('#rating-input-container');
+            ratingCheck.onchange = (e) => {
+                ratingContainer.style.opacity = e.target.checked ? '1' : '0.4';
+                ratingContainer.style.pointerEvents = e.target.checked ? 'auto' : 'none';
+            };
         },
 
         toggleAllChannels() {
@@ -395,11 +609,9 @@
             checkboxes.forEach(cb => cb.checked = !currentState);
         },
 
-        startScan(isFastMode) {
+        prepareAndStart(isFastMode) {
             const selectedChannels = [];
-            const checkboxes = this.rootElement.querySelectorAll('.fh-channel-list input[type="checkbox"]:checked');
-
-            checkboxes.forEach(cb => {
+            this.rootElement.querySelectorAll('.fh-channel-list input[type="checkbox"]:checked').forEach(cb => {
                 const channel = CHANNEL_LIST.find(c => c.urlParam === cb.dataset.url);
                 if (channel) selectedChannels.push(channel);
             });
@@ -409,13 +621,16 @@
                 return;
             }
 
-            this.rootElement.querySelectorAll('.fh-btn').forEach(btn => btn.disabled = true);
+            // Apply settings
+            SCRIPT_SETTINGS.enableRatingFilter = this.rootElement.querySelector('#setting-rating-enable').checked;
+            SCRIPT_SETTINGS.minRating = parseFloat(this.rootElement.querySelector('#setting-rating-val').value) || 3.5;
+
+            // Hide overlay to show logs
             const overlay = this.rootElement.querySelector('#fh-overlay');
-            if (overlay) overlay.remove();
+            if (overlay) overlay.style.display = 'none';
 
             CoreLogic.start(isFastMode, selectedChannels).finally(() => {
                 this.log('info', this.getText('RELOAD_PROMPT'));
-                this.rootElement.querySelectorAll('.fh-btn').forEach(btn => btn.disabled = false);
             });
         },
 
@@ -423,10 +638,8 @@
             this.isWindowMinimized = !this.isWindowMinimized;
             if (this.isWindowMinimized) {
                 this.rootElement.classList.add('minimized');
-                this.rootElement.querySelector('#fh-min-btn').textContent = '⬜';
             } else {
                 this.rootElement.classList.remove('minimized');
-                this.rootElement.querySelector('#fh-min-btn').textContent = '➖';
             }
         },
 
@@ -440,30 +653,23 @@
 
         log(type, message, detail) {
             if (!this.logContainer) return;
-
             const shouldScroll = this.logContainer.scrollHeight - this.logContainer.clientHeight <= this.logContainer.scrollTop + this.AUTO_SCROLL_THRESHOLD;
-
             const entry = document.createElement('div');
             entry.className = 'fh-log-entry';
 
             let color = '#ccc';
-            let icon = '';
+            let icon = '•'; // Simple clean icon
 
             switch (type) {
-                case 'success': color = '#4CAF50'; icon = '✅ '; break;
-                case 'warn':    color = '#FFC107'; icon = '⚠️ '; break;
-                case 'error':   color = '#f44336'; icon = '❌ '; break;
-                case 'info':    color = '#2196F3'; icon = 'ℹ️ '; break;
-                default:        color = '#ccc'; icon = '📄 '; break;
+                case 'success': color = '#4CAF50'; icon = '✓'; break;
+                case 'warn':    color = '#FFC107'; icon = '!'; break;
+                case 'error':   color = '#ff6b6b'; icon = 'x'; break;
+                case 'info':    color = '#2196F3'; icon = 'i'; break;
             }
 
             const time = new Date().toLocaleTimeString([], { hour12: false });
-            let formattedMessage = message;
-            if (detail) {
-                 formattedMessage += ` (${detail})`;
-            }
-
-            entry.innerHTML = `<span class="fh-time">[${time}]</span><span style="color:${color}">${icon}${formattedMessage}</span>`;
+            entry.innerHTML = `<span style="color:#666;font-size:11px;margin-right:8px">[${time}]</span><span style="color:${color}">${icon} ${message}</span>`;
+            if (detail) entry.innerHTML += ` <span style="color:#888">(${detail})</span>`;
 
             this.logContainer.appendChild(entry);
 
@@ -474,45 +680,7 @@
     };
 
     // ==========================================
-    // 🌐 LANGUAGE SELECTOR MODULE / 语言选择器模块
-    // ==========================================
-    const LanguageSelector = {
-        /**
-         * 显示语言选择对话框。
-         * Displays the language selection dialog.
-         * @returns {Promise<string>} 用户选择的语言代码 / Selected language code by the user.
-         */
-        show() {
-            return new Promise(resolve => {
-                const overlay = document.createElement('div');
-                overlay.id = 'language-selector-overlay'; // 整个屏幕的半透明背景
-
-                overlay.innerHTML = `
-                    <div id="language-selector">
-                        <h3>请选择您的语言 | Please Select Your Language</h3>
-                        <div class="language-buttons">
-                            <button data-lang="zh-CN">🇨🇳 简体中文</button>
-                            <button data-lang="en-US">🇺🇸 English (US)</button>
-                        </div>
-                    </div>
-                `;
-
-                document.body.appendChild(overlay);
-
-                // 绑定点击事件，移除选择器并解析 Promise
-                overlay.querySelectorAll('button').forEach(button => {
-                    button.onclick = () => {
-                        const lang = button.dataset.lang;
-                        overlay.remove(); // 移除整个 overlay
-                        resolve(lang);
-                    };
-                });
-            });
-        }
-    };
-
-    // ==========================================
-    // 🧠 CORE LOGIC MODULE / 核心逻辑模块
+    // Core Business Logic
     // ==========================================
     const CoreLogic = {
         defaultHeaders: {},
@@ -524,12 +692,12 @@
 
             const modeText = isFastMode ? UserInterface.getText('FAST_MODE_START') : UserInterface.getText('FULL_MODE_START');
             UserInterface.log('info', UserInterface.getText('SCRIPT_START', modeText));
-            UserInterface.log('info', UserInterface.getText('SELECTED_CHANNELS', selectedChannels.map(c => c.name).join(', ')));
 
             try {
                 this.initializeAuthentication();
             } catch (e) {
                 RUNTIME_STATE.isRunning = false;
+                alert(UserInterface.getText('AUTH_SOUL_QUESTION'));
                 return UserInterface.log('error', UserInterface.getText('AUTH_ERROR'));
             }
 
@@ -539,17 +707,13 @@
                 await this.processChannelPages(channel);
                 await this.sleep(2000);
             }
-
             UserInterface.log('success', UserInterface.getText('ALL_FINISHED', RUNTIME_STATE.successClaimed));
             RUNTIME_STATE.isRunning = false;
         },
 
         initializeAuthentication() {
             const csrfToken = this.getCookie('fab_csrftoken');
-            if (!csrfToken) {
-                throw new Error("Auth failed.");
-            }
-
+            if (!csrfToken) throw new Error("Auth failed.");
             this.defaultHeaders = {
                 "x-csrftoken": csrfToken,
                 "x-requested-with": "XMLHttpRequest",
@@ -560,12 +724,12 @@
 
         async processChannelPages(channel) {
             let nextCursor = null;
-            let emptyPagesCount = 0;
             let pageNum = 1;
-
+            let emptyPagesCount = 0;
             const baseUrl = `https://www.fab.com/i/listings/search?channels=${channel.urlParam}&is_free=${channel.isFree ? 1 : 0}&sort_by=-createdAt`;
 
             do {
+                if (!RUNTIME_STATE.isRunning) break;
                 const url = `${baseUrl}${nextCursor ? `&cursor=${nextCursor}` : ''}`;
                 const data = await this.fetchWithRetry(url);
 
@@ -576,17 +740,35 @@
 
                 nextCursor = data.cursors?.next;
                 const items = data.results;
-
                 if (items.length === 0) break;
 
                 UserInterface.log('log', UserInterface.getText('PAGE_SCANNING', channel.name, pageNum, items.length));
 
                 const uids = items.map(i => i.uid);
                 const ownershipStatus = await this.checkOwnership(uids);
-                const pendingItems = items.filter(item => ownershipStatus[item.uid] === false);
+
+                // Only filter items that are explicitly owned (true).
+                // Items with false/undefined ownership status should be attempted.
+                let pendingItems = items.filter(item => ownershipStatus[item.uid] !== true);
 
                 RUNTIME_STATE.totalScanned += items.length;
                 RUNTIME_STATE.skippedOwned += (items.length - pendingItems.length);
+
+                // Apply Rating Filter if enabled
+                if (SCRIPT_SETTINGS.enableRatingFilter && pendingItems.length > 0) {
+                     pendingItems = pendingItems.filter(item => {
+                         const rating = item.average_rating || item.averageRating || item.ratingScore;
+                         const count = item.review_count || item.reviewCount || 0;
+
+                         // Skip only if item has reviews AND rating is below threshold
+                         if (count > 0 && rating !== undefined && rating < SCRIPT_SETTINGS.minRating) {
+                             UserInterface.log('warn', UserInterface.getText('RATING_SKIPPED', item.title, rating.toFixed(1), count));
+                             return false;
+                         }
+                         return true;
+                     });
+                }
+
                 UserInterface.updateDashboard();
 
                 if (pendingItems.length === 0) {
@@ -595,7 +777,6 @@
                 } else {
                     emptyPagesCount = 0;
                     UserInterface.log('info', UserInterface.getText('ITEMS_FOUND', pendingItems.length));
-
                     for (const item of pendingItems) {
                         if (!RUNTIME_STATE.isRunning) return;
                         await this.claimItem(item);
@@ -607,10 +788,8 @@
                     UserInterface.log('warn', UserInterface.getText('FAST_MODE_LIMIT'));
                     break;
                 }
-
                 pageNum++;
                 await this.sleep(1000);
-
             } while (nextCursor && RUNTIME_STATE.isRunning);
         },
 
@@ -620,6 +799,16 @@
                 if (!details || !details.licenses) {
                     UserInterface.log('warn', UserInterface.getText('CLAIM_FETCH_DETAIL_FAIL', item.title));
                     return;
+                }
+
+                // Secondary Deep Rating Check (Double verification)
+                if (SCRIPT_SETTINGS.enableRatingFilter) {
+                    const rating = details.averageRating || details.average_rating || 0;
+                    const count = details.reviewCount || details.review_count || 0;
+                    if (count > 0 && rating < SCRIPT_SETTINGS.minRating) {
+                        UserInterface.log('warn', UserInterface.getText('RATING_SKIPPED', item.title, rating.toFixed(1), count));
+                        return;
+                    }
                 }
 
                 const freeLicense = details.licenses.find(l => l.priceTier?.price === 0 && l.slug === 'professional') ||
@@ -634,15 +823,9 @@
                 const formData = new FormData();
                 formData.append('offer_id', freeLicense.offerId);
 
-                const claimHeaders = {
-                    "x-csrftoken": this.defaultHeaders["x-csrftoken"],
-                    "x-requested-with": "XMLHttpRequest",
-                    "accept": "application/json"
-                };
-
                 const res = await fetch(`https://www.fab.com/i/listings/${item.uid}/add-to-library`, {
                     method: 'POST',
-                    headers: claimHeaders,
+                    headers: { ...this.defaultHeaders, "accept": "application/json" },
                     body: formData
                 });
 
@@ -665,41 +848,33 @@
             if (!uids.length) return {};
             try {
                 const query = uids.map(id => `listing_ids=${id}`).join('&');
-                const url = `https://www.fab.com/i/users/me/listings-states?${query}`;
-
-                const data = await this.fetchWithRetry(url);
-
+                const data = await this.fetchWithRetry(`https://www.fab.com/i/users/me/listings-states?${query}`);
                 return Array.isArray(data) ? data.reduce((acc, item) => ({ ...acc, [item.uid]: item.acquired }), {}) : {};
             } catch (e) {
-                UserInterface.log('error', UserInterface.getText('OWNERSHIP_ERROR'));
                 return {};
             }
         },
 
         async fetchWithRetry(url, options = {}, retries = SCRIPT_SETTINGS.retry.limit) {
             options.headers = { ...this.defaultHeaders, ...options.headers };
-
             for (let i = 0; i < retries; i++) {
                 try {
                     const res = await fetch(url, options);
-
-                    if (res.status === 401) throw new Error("Unauthorized (401) - Auth failed.");
-
+                    if (res.status === 401) {
+                        alert(UserInterface.getText('AUTH_SOUL_QUESTION'));
+                        throw new Error("Auth failed");
+                    }
                     if (res.status === 429) {
-                        const waitTime = (i + 1) * 5000;
-                        UserInterface.log('warn', UserInterface.getText('RATE_LIMIT', waitTime/1000));
-                        await this.sleep(waitTime);
+                        const w = (i + 1) * 5000;
+                        UserInterface.log('warn', UserInterface.getText('RATE_LIMIT', w/1000));
+                        await this.sleep(w);
                         continue;
                     }
-
-                    if (!res.ok) throw new Error(`HTTP Error ${res.status}`);
-
+                    if (!res.ok) throw new Error(`HTTP ${res.status}`);
                     return await res.json();
                 } catch (e) {
-                    if (i === retries - 1) {
-                        UserInterface.log('error', `Final request failed: ${url} (${e.message})`);
-                        return null;
-                    }
+                    if (e.message.includes("Auth")) throw e;
+                    if (i === retries - 1) return null;
                     await this.sleep(SCRIPT_SETTINGS.retry.delayMs);
                 }
             }
@@ -711,7 +886,9 @@
             return match ? match[2] : null;
         },
 
-        sleep(ms) { return new Promise(r => setTimeout(r, ms)); },
+        sleep(ms) {
+            return new Promise(r => setTimeout(r, ms));
+        },
 
         randomDelay() {
             const { min, max } = SCRIPT_SETTINGS.requestDelay;
@@ -719,7 +896,6 @@
         }
     };
 
-    // 🚀 SCRIPT ENTRY POINT / 脚本启动点
+    // Initialize the script
     UserInterface.init();
-
 })();
