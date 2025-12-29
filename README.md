@@ -1,8 +1,6 @@
-# UnrealFabAssistantPlus
+# ⚡ UnrealFab 领取助手 Plus (Professional Edition)
 
 简体中文 | [English](https://www.google.com/search?q=/doc/README_EN.md)
-
-# ⚡ UnrealFab 领取助手 Plus (Professional Edition)
 
 ## 简介
 
