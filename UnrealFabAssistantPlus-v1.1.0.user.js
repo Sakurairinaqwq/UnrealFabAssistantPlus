@@ -721,4 +721,5 @@
 
     // 🚀 SCRIPT ENTRY POINT / 脚本启动点
     UserInterface.init();
+
 })();
