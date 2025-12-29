@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         UnrealFabAssistantPlus
 // @namespace    https://github.com/Sakurairinaqwq/UnrealFabAssistantPlus
-// @version      v1.0.0
+// @version      v1.0.1
 // @description  Fab.com Free Asset Auto-Claim Helper Plus
 // @author       Sakurairinaqwq (It is an iteration based on https://github.com/RyensX/UnrealFabAssistant Thanks to https://github.com/RyensX)
 // @match        https://www.fab.com/*
@@ -14,7 +14,7 @@
     'use strict';
 
     // Startup Logging
-    console.log("[UnrealFabAssistantPlus] v3.6.0 Initializing...");
+    console.log("[UnrealFabAssistantPlus] v1.0.1 Initializing...");
 
     // ==========================================
     // Localization Configuration
@@ -38,9 +38,13 @@
             FULL_MODE_START: '🐢 Full Mode',
             FULL_MODE_DETAIL: 'Check All',
             ALERT_NO_CHANNEL: 'Please select at least one channel!',
-            AUTH_SOUL_QUESTION: 'Logged in? Are you sure? Check again?',
+            
+            // Auth Modal
+            AUTH_TITLE: '⚠️ Session Expired',
+            AUTH_MSG: 'Logged in? Are you sure? Check again?',
+            AUTH_RELOAD: '🔄 Reload Page',
 
-            // Log Templates
+            // Logs
             SCRIPT_START: (mode) => `System initialized | Mode: ${mode}`,
             SELECTED_CHANNELS: (channels) => `Targeting: ${channels}`,
             AUTH_ERROR: '❌ Auth Error: Not logged in or Cookie expired.',
@@ -51,7 +55,7 @@
             ITEMS_FOUND: (count) => `   ↳ Discovered ${count} new items!`,
             FAST_MODE_LIMIT: '⏸️ Fast Mode limit reached.',
             RATING_SKIPPED: (title, score, count) => `   ⚠️ Low Rating: ${title} [${score}⭐/${count}]`,
-
+            
             // Claim Status
             CLAIM_SUCCESS: (title) => `   ✅ Claimed: ${title}`,
             CLAIM_NO_LICENSE: (title) => `   ⚠️ ${title}: No free license found.`,
@@ -82,9 +86,13 @@
             FULL_MODE_START: '🐢 全量模式',
             FULL_MODE_DETAIL: '地毯式搜索',
             ALERT_NO_CHANNEL: '请至少选择一个渠道！',
-            AUTH_SOUL_QUESTION: '你登录了？你确定？你再检查一次？',
+            
+            // Auth Modal
+            AUTH_TITLE: '⚠️ 登录状态失效',
+            AUTH_MSG: '你登录了？你确定？你再检查一次？',
+            AUTH_RELOAD: '🔄 刷新页面重新登录',
 
-            // Log Templates
+            // Logs
             SCRIPT_START: (mode) => `系统已启动 | 模式：${mode}`,
             SELECTED_CHANNELS: (channels) => `目标渠道：${channels}`,
             AUTH_ERROR: '❌ 鉴权失败：未登录或 Cookie 失效',
@@ -95,7 +103,7 @@
             ITEMS_FOUND: (count) => `   ↳ 发现 ${count} 个新资产！`,
             FAST_MODE_LIMIT: '⏸️ 触发快速模式上限，停止当前分类',
             RATING_SKIPPED: (title, score, count) => `   ⚠️ 评分过低跳过: ${title} [${score}分/${count}评]`,
-
+            
             // Claim Status
             CLAIM_SUCCESS: (title) => `   ✅ 成功入库：${title}`,
             CLAIM_NO_LICENSE: (title) => `   ⚠️ ${title}: 无免费许可`,
@@ -109,15 +117,8 @@
         }
     };
 
-    // Auto-detect browser language
+    // Default language, updated by user selection
     let CURRENT_LANG = 'en-US';
-    try {
-        if (navigator.language && navigator.language.includes('zh')) {
-            CURRENT_LANG = 'zh-CN';
-        }
-    } catch (e) {
-        console.warn("[UnrealFabAssistantPlus] Language detection failed, defaulting to EN.");
-    }
 
     // ==========================================
     // Global Settings
@@ -129,8 +130,14 @@
         enableRatingFilter: false,
         minRating: 3.5,
         // Delay Settings (ms)
-        requestDelay: { min: 1200, max: 3000 },
-        retry: { limit: 3, delayMs: 2000 }
+        requestDelay: { 
+            min: 1200, 
+            max: 3000 
+        },
+        retry: { 
+            limit: 3, 
+            delayMs: 2000 
+        }
     };
 
     const CHANNEL_LIST = [
@@ -161,7 +168,7 @@
     };
 
     // ==========================================
-    // UI Controller
+    // UI Controller Module
     // ==========================================
     const UserInterface = {
         rootElement: null,
@@ -178,21 +185,40 @@
             return text || LANGUAGE_PACKS['en-US'][key] || key;
         },
 
-        init() {
+        async init() {
             try {
                 this.injectStyles();
+                // 1. Show Language Selector and wait for user choice
+                const selectedLang = await LanguageSelector.show();
+                CURRENT_LANG = selectedLang;
+
+                // 2. Render Main Interface
                 this.renderInterface();
-                console.log("[UnrealFabAssistantPlus] UI Initialized.");
+                console.log("UI Initialized successfully.");
             } catch (e) {
                 console.error("UI Initialization failed:", e);
-                // Fallback alert if UI fails to render
                 alert("UnrealFabAssistantPlus UI Error: " + e.message);
             }
         },
 
         injectStyles() {
             const css = `
-                /* Main Container Styles - Professional Dark Mode */
+                /* -----------------------------------------------------------
+                   Animations
+                   ----------------------------------------------------------- */
+                @keyframes fh-fade-in {
+                    0% { opacity: 0; transform: scale(0.95); }
+                    100% { opacity: 1; transform: scale(1); }
+                }
+
+                @keyframes fh-slide-up {
+                    0% { opacity: 0; transform: translateY(30px); }
+                    100% { opacity: 1; transform: translateY(0); }
+                }
+
+                /* -----------------------------------------------------------
+                   Main UI Container
+                   ----------------------------------------------------------- */
                 #fab-helper-root {
                     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
                     font-size: 14px;
@@ -209,14 +235,17 @@
                     border-radius: 20px;
                     border: 1px solid rgba(255, 255, 255, 0.1);
                     box-shadow: 0 25px 80px rgba(0, 0, 0, 0.8), 0 0 0 1px rgba(255,255,255,0.05);
-                    z-index: 2147483647; /* Max Z-Index to prevent overlay issues */
+                    z-index: 2147483647;
                     display: flex;
                     flex-direction: column;
-                    transition: width 0.3s, height 0.3s;
+                    transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+                    animation: fh-slide-up 0.4s ease-out forwards;
                     overflow: hidden;
                 }
 
-                /* Minimized 'Pill' State */
+                /* -----------------------------------------------------------
+                   Pill Mode (Minimized)
+                   ----------------------------------------------------------- */
                 #fab-helper-root.minimized {
                     width: 220px !important;
                     height: 60px !important;
@@ -233,7 +262,10 @@
                     justify-content: center;
                 }
 
-                /* Header adjustments in minimized mode */
+                #fab-helper-root.minimized:hover {
+                    transform: translateY(-3px) scale(1.02);
+                }
+
                 #fab-helper-root.minimized .fh-header {
                     background: transparent;
                     padding: 0;
@@ -250,7 +282,7 @@
                     white-space: nowrap;
                 }
 
-                /* Hide content when minimized */
+                /* Hide internals when minimized */
                 #fab-helper-root.minimized .fh-controls,
                 #fab-helper-root.minimized .fh-dashboard,
                 #fab-helper-root.minimized .fh-logs,
@@ -258,7 +290,9 @@
                     display: none !important;
                 }
 
-                /* Header & Controls */
+                /* -----------------------------------------------------------
+                   Header
+                   ----------------------------------------------------------- */
                 .fh-header {
                     padding: 16px 24px;
                     background: rgba(255, 255, 255, 0.05);
@@ -281,7 +315,7 @@
                 }
 
                 .fh-controls button {
-                    background: rgba(255,255,255,0.05);
+                    background: rgba(255, 255, 255, 0.05);
                     border: none;
                     color: #aaa;
                     cursor: pointer;
@@ -292,20 +326,22 @@
                     align-items: center;
                     justify-content: center;
                     font-size: 14px;
+                    transition: all 0.2s;
                 }
 
                 .fh-controls button:hover {
-                    background: rgba(255,255,255,0.2);
+                    background: rgba(255, 255, 255, 0.2);
                     color: white;
                 }
 
-                /* Red Close Button */
                 #fh-close-btn:hover {
                     background: #ff4757 !important;
                     color: white !important;
                 }
 
-                /* Dashboard Stats */
+                /* -----------------------------------------------------------
+                   Dashboard
+                   ----------------------------------------------------------- */
                 .fh-dashboard {
                     display: grid;
                     grid-template-columns: repeat(4, 1fr);
@@ -317,10 +353,10 @@
                     display: flex;
                     flex-direction: column;
                     align-items: center;
-                    background: rgba(0,0,0,0.3);
+                    background: rgba(0, 0, 0, 0.3);
                     padding: 10px;
                     border-radius: 12px;
-                    border: 1px solid rgba(255,255,255,0.05);
+                    border: 1px solid rgba(255, 255, 255, 0.05);
                 }
 
                 .fh-stat-val {
@@ -337,13 +373,15 @@
                     text-transform: uppercase;
                 }
 
-                /* Log Console */
+                /* -----------------------------------------------------------
+                   Log Area
+                   ----------------------------------------------------------- */
                 .fh-logs {
                     flex: 1;
                     overflow-y: auto;
                     padding: 12px 24px;
-                    background: rgba(0,0,0,0.2);
-                    font-family: 'Consolas', 'Monaco', monospace;
+                    background: rgba(0, 0, 0, 0.2);
+                    font-family: 'Consolas', monospace;
                     font-size: 13px;
                 }
 
@@ -352,17 +390,20 @@
                 }
 
                 .fh-logs::-webkit-scrollbar-thumb {
-                    background: rgba(255,255,255,0.15);
+                    background: rgba(255, 255, 255, 0.15);
                     border-radius: 3px;
                 }
 
                 .fh-log-entry {
-                    margin-bottom: 6px;
-                    padding-bottom: 6px;
-                    border-bottom: 1px solid rgba(255,255,255,0.05);
+                    margin-bottom: 5px;
+                    padding-bottom: 5px;
+                    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+                    animation: fh-fade-in 0.3s ease;
                 }
 
-                /* Settings Overlay */
+                /* -----------------------------------------------------------
+                   Settings Overlay
+                   ----------------------------------------------------------- */
                 .fh-overlay {
                     position: absolute;
                     top: 62px;
@@ -377,6 +418,7 @@
                     border-radius: 0 0 20px 20px;
                     display: flex;
                     flex-direction: column;
+                    animation: fh-fade-in 0.2s ease;
                 }
 
                 .fh-section-title {
@@ -384,20 +426,15 @@
                     font-size: 12px;
                     font-weight: 700;
                     text-transform: uppercase;
-                    margin: 20px 0 10px;
+                    margin: 15px 0 10px;
                     border-bottom: 1px solid rgba(76, 175, 80, 0.3);
                     padding-bottom: 5px;
-                }
-
-                .fh-section-title:first-child {
-                    margin-top: 0;
                 }
 
                 .fh-channel-list {
                     display: grid;
                     grid-template-columns: repeat(2, 1fr);
                     gap: 10px;
-                    margin-bottom: 15px;
                 }
 
                 .fh-channel-item {
@@ -405,37 +442,31 @@
                     align-items: center;
                     gap: 10px;
                     padding: 10px;
-                    background: rgba(255,255,255,0.05);
+                    background: rgba(255, 255, 255, 0.05);
                     border-radius: 10px;
                     cursor: pointer;
                     color: #ccc;
+                    transition: 0.2s;
                 }
 
                 .fh-channel-item:hover {
-                    background: rgba(255,255,255,0.1);
+                    background: rgba(255, 255, 255, 0.1);
                     color: white;
-                }
-
-                .fh-channel-item input {
-                    accent-color: #4CAF50;
-                    transform: scale(1.2);
-                    cursor: pointer;
                 }
 
                 .fh-settings-row {
                     display: flex;
                     justify-content: space-between;
-                    align-items: center;
-                    background: rgba(255,255,255,0.05);
+                    background: rgba(255, 255, 255, 0.05);
                     padding: 12px 16px;
                     border-radius: 10px;
-                    margin-bottom: 20px;
+                    margin: 15px 0;
                 }
 
                 .fh-input-num {
                     width: 50px;
-                    background: rgba(0,0,0,0.3);
-                    border: 1px solid rgba(255,255,255,0.1);
+                    background: rgba(0, 0, 0, 0.3);
+                    border: 1px solid rgba(255, 255, 255, 0.1);
                     color: white;
                     padding: 5px;
                     text-align: center;
@@ -456,14 +487,12 @@
                     font-weight: 700;
                     color: white;
                     cursor: pointer;
-                    display: flex;
-                    flex-direction: column;
-                    align-items: center;
+                    transition: 0.2s;
                 }
 
-                .fh-btn:disabled {
-                    opacity: 0.5;
-                    cursor: not-allowed;
+                .fh-btn:hover {
+                    filter: brightness(1.2);
+                    transform: translateY(-2px);
                 }
 
                 .btn-green { background: #4CAF50; }
@@ -471,12 +500,90 @@
                 .btn-gray {
                     width: 100%;
                     padding: 10px;
-                    background: rgba(255,255,255,0.1);
+                    background: rgba(255, 255, 255, 0.1);
                     border-radius: 8px;
                     border: none;
                     color: #ddd;
                     cursor: pointer;
                     font-weight: 600;
+                }
+
+                /* -----------------------------------------------------------
+                   Modal (Auth & Language)
+                   ----------------------------------------------------------- */
+                .modal-overlay {
+                    position: fixed;
+                    top: 0;
+                    left: 0;
+                    width: 100%;
+                    height: 100%;
+                    background: rgba(0, 0, 0, 0.7);
+                    backdrop-filter: blur(8px);
+                    z-index: 2147483647;
+                    display: flex;
+                    justify-content: center;
+                    align-items: center;
+                    animation: fh-fade-in 0.3s ease;
+                }
+
+                .modal-box {
+                    background: #1e1e20;
+                    padding: 30px;
+                    border-radius: 20px;
+                    text-align: center;
+                    border: 1px solid rgba(255, 255, 255, 0.1);
+                    box-shadow: 0 30px 80px rgba(0, 0, 0, 0.8);
+                    max-width: 400px;
+                    width: 90%;
+                    animation: fh-slide-up 0.4s cubic-bezier(0.2, 0.8, 0.2, 1);
+                }
+
+                .modal-box h3 {
+                    margin-top: 0;
+                    font-size: 18px;
+                }
+
+                .modal-box.auth-error {
+                    border: 1px solid #f44336;
+                }
+
+                .modal-box.auth-error h3 {
+                    color: #f44336;
+                }
+
+                .modal-box.lang-select h3 {
+                    color: #4CAF50;
+                }
+
+                .modal-btn-row {
+                    display: flex;
+                    gap: 15px;
+                    margin-top: 20px;
+                }
+
+                .modal-btn {
+                    flex: 1;
+                    padding: 14px;
+                    border-radius: 10px;
+                    border: none;
+                    font-weight: bold;
+                    cursor: pointer;
+                    background: #333;
+                    color: white;
+                    transition: 0.2s;
+                }
+
+                .modal-btn:hover {
+                    background: #4CAF50;
+                    transform: translateY(-2px);
+                }
+
+                .modal-btn.danger {
+                    background: #d32f2f;
+                }
+
+                .modal-btn.danger:hover {
+                    background: #f44336;
                 }
             `;
             const style = document.createElement('style');
@@ -499,16 +606,28 @@
                 <div class="fh-header">
                     <div class="fh-title">${this.getText('TITLE')}</div>
                     <div class="fh-controls">
-                        <button id="fh-min-btn" title="${this.getText('MINIMIZE')}">－</button>
-                        <button id="fh-close-btn" title="${this.getText('CLOSE')}">✕</button>
+                        <button id="fh-min-btn">－</button>
+                        <button id="fh-close-btn">✕</button>
                     </div>
                 </div>
 
                 <div class="fh-dashboard">
-                    <div class="fh-stat-item"><span class="fh-stat-val" id="stat-scanned">0</span><span class="fh-stat-label">${this.getText('SCANNED')}</span></div>
-                    <div class="fh-stat-item"><span class="fh-stat-val" style="color:#4CAF50" id="stat-success">0</span><span class="fh-stat-label">${this.getText('SUCCESS')}</span></div>
-                    <div class="fh-stat-item"><span class="fh-stat-val" style="color:#ff6b6b" id="stat-failed">0</span><span class="fh-stat-label">${this.getText('FAILED')}</span></div>
-                    <div class="fh-stat-item"><span class="fh-stat-val" style="color:#FF9800" id="stat-skipped">0</span><span class="fh-stat-label">${this.getText('SKIPPED')}</span></div>
+                    <div class="fh-stat-item">
+                        <span class="fh-stat-val" id="stat-scanned">0</span>
+                        <span class="fh-stat-label">${this.getText('SCANNED')}</span>
+                    </div>
+                    <div class="fh-stat-item">
+                        <span class="fh-stat-val" style="color:#4CAF50" id="stat-success">0</span>
+                        <span class="fh-stat-label">${this.getText('SUCCESS')}</span>
+                    </div>
+                    <div class="fh-stat-item">
+                        <span class="fh-stat-val" style="color:#ff6b6b" id="stat-failed">0</span>
+                        <span class="fh-stat-label">${this.getText('FAILED')}</span>
+                    </div>
+                    <div class="fh-stat-item">
+                        <span class="fh-stat-val" style="color:#FF9800" id="stat-skipped">0</span>
+                        <span class="fh-stat-label">${this.getText('SKIPPED')}</span>
+                    </div>
                 </div>
 
                 <div class="fh-logs" id="fh-logs"></div>
@@ -520,11 +639,11 @@
 
                     <div class="fh-section-title">${this.getText('FILTER_SETTINGS')}</div>
                     <div class="fh-settings-row">
-                        <label style="display:flex;align-items:center;cursor:pointer;color:#e0e0e0;font-size:13px;">
+                        <label style="display:flex;align-items:center;cursor:pointer;">
                             <input type="checkbox" id="setting-rating-enable" style="margin-right:10px;accent-color:#4CAF50;transform:scale(1.2);">
                             ${this.getText('ENABLE_RATING_FILTER')}
                         </label>
-                        <div id="rating-input-container" style="opacity:0.4; pointer-events:none; transition:opacity 0.2s; display:flex; align-items:center; gap:8px;">
+                        <div id="rating-input-container" style="opacity:0.4; pointer-events:none; transition:opacity 0.2s;">
                             <span style="font-size:12px;color:#ccc;">${this.getText('MIN_RATING_LABEL')}</span>
                             <input type="number" id="setting-rating-val" class="fh-input-num" value="3.5" step="0.1" min="0" max="5">
                         </div>
@@ -548,7 +667,9 @@
                 document.body.appendChild(this.rootElement);
             } else {
                 console.error("Document body not available. UI injection deferred.");
-                setTimeout(() => { if(document.body) document.body.appendChild(this.rootElement); }, 1500);
+                setTimeout(() => { 
+                    if(document.body) document.body.appendChild(this.rootElement); 
+                }, 1500);
             }
 
             this.logContainer = this.rootElement.querySelector('#fh-logs');
@@ -562,15 +683,30 @@
             this.bindEvents();
         },
 
+        showAuthModal() {
+            const overlay = document.createElement('div');
+            overlay.className = 'modal-overlay';
+            overlay.innerHTML = `
+                <div class="modal-box auth-error">
+                    <h3>${this.getText('AUTH_TITLE')}</h3>
+                    <p style="color:#ddd; margin: 15px 0;">${this.getText('AUTH_MSG')}</p>
+                    <button class="modal-btn danger" onclick="location.reload()">
+                        ${this.getText('AUTH_RELOAD')}
+                    </button>
+                </div>
+            `;
+            document.body.appendChild(overlay);
+        },
+
         bindEvents() {
             const els = this.rootElement;
-            if(!els) return;
+            if (!els) return;
 
             // Minimize toggle on container click (only works when minimized)
             els.onclick = (e) => {
                 if (this.isWindowMinimized) {
                     this.toggleMinimize();
-                    e.stopPropagation();
+                    e.stopPropagation(); 
                 }
             };
 
@@ -582,9 +718,9 @@
             // Header Button Events
             els.querySelector('#fh-close-btn').onclick = (e) => {
                 e.stopPropagation();
-                if(confirm("Exit Helper?")) els.remove();
+                if (confirm("Exit Helper?")) els.remove();
             };
-
+            
             els.querySelector('#fh-min-btn').onclick = (e) => {
                 e.stopPropagation();
                 this.toggleMinimize();
@@ -656,26 +792,56 @@
             const shouldScroll = this.logContainer.scrollHeight - this.logContainer.clientHeight <= this.logContainer.scrollTop + this.AUTO_SCROLL_THRESHOLD;
             const entry = document.createElement('div');
             entry.className = 'fh-log-entry';
-
+            
             let color = '#ccc';
-            let icon = '•'; // Simple clean icon
-
+            let icon = '•';
+            
             switch (type) {
                 case 'success': color = '#4CAF50'; icon = '✓'; break;
                 case 'warn':    color = '#FFC107'; icon = '!'; break;
                 case 'error':   color = '#ff6b6b'; icon = 'x'; break;
                 case 'info':    color = '#2196F3'; icon = 'i'; break;
             }
-
+            
             const time = new Date().toLocaleTimeString([], { hour12: false });
             entry.innerHTML = `<span style="color:#666;font-size:11px;margin-right:8px">[${time}]</span><span style="color:${color}">${icon} ${message}</span>`;
             if (detail) entry.innerHTML += ` <span style="color:#888">(${detail})</span>`;
-
+            
             this.logContainer.appendChild(entry);
-
+            
             if (shouldScroll) {
                 this.logContainer.scrollTop = this.logContainer.scrollHeight;
             }
+        }
+    };
+
+    // ==========================================
+    // Language Selection Module
+    // ==========================================
+    const LanguageSelector = {
+        show() {
+            return new Promise(resolve => {
+                const overlay = document.createElement('div');
+                overlay.className = 'modal-overlay';
+                overlay.innerHTML = `
+                    <div class="modal-box lang-select">
+                        <h3>Select Language / 选择语言</h3>
+                        <div class="modal-btn-row">
+                            <button class="modal-btn" data-lang="zh-CN">🇨🇳 简体中文</button>
+                            <button class="modal-btn" data-lang="en-US">🇺🇸 English (US)</button>
+                        </div>
+                    </div>
+                `;
+                document.body.appendChild(overlay);
+                
+                overlay.querySelectorAll('button').forEach(btn => {
+                    btn.onclick = () => {
+                        const lang = btn.dataset.lang;
+                        overlay.remove();
+                        resolve(lang);
+                    };
+                });
+            });
         }
     };
 
@@ -689,16 +855,16 @@
             SCRIPT_SETTINGS.isFastMode = isFastMode;
             RUNTIME_STATE.reset();
             RUNTIME_STATE.isRunning = true;
-
+            
             const modeText = isFastMode ? UserInterface.getText('FAST_MODE_START') : UserInterface.getText('FULL_MODE_START');
             UserInterface.log('info', UserInterface.getText('SCRIPT_START', modeText));
-
-            try {
-                this.initializeAuthentication();
-            } catch (e) {
-                RUNTIME_STATE.isRunning = false;
-                alert(UserInterface.getText('AUTH_SOUL_QUESTION'));
-                return UserInterface.log('error', UserInterface.getText('AUTH_ERROR'));
+            
+            try { 
+                this.initializeAuthentication(); 
+            } catch (e) { 
+                RUNTIME_STATE.isRunning = false; 
+                UserInterface.showAuthModal();
+                return; 
             }
 
             for (const channel of selectedChannels) {
@@ -714,11 +880,11 @@
         initializeAuthentication() {
             const csrfToken = this.getCookie('fab_csrftoken');
             if (!csrfToken) throw new Error("Auth failed.");
-            this.defaultHeaders = {
-                "x-csrftoken": csrfToken,
-                "x-requested-with": "XMLHttpRequest",
-                "accept": "application/json",
-                "content-type": "application/x-www-form-urlencoded"
+            this.defaultHeaders = { 
+                "x-csrftoken": csrfToken, 
+                "x-requested-with": "XMLHttpRequest", 
+                "accept": "application/json", 
+                "content-type": "application/x-www-form-urlencoded" 
             };
         },
 
@@ -732,10 +898,10 @@
                 if (!RUNTIME_STATE.isRunning) break;
                 const url = `${baseUrl}${nextCursor ? `&cursor=${nextCursor}` : ''}`;
                 const data = await this.fetchWithRetry(url);
-
-                if (!data || !data.results) {
-                    UserInterface.log('error', UserInterface.getText('PAGE_FAILED', channel.name));
-                    break;
+                
+                if (!data || !data.results) { 
+                    UserInterface.log('error', UserInterface.getText('PAGE_FAILED', channel.name)); 
+                    break; 
                 }
 
                 nextCursor = data.cursors?.next;
@@ -743,12 +909,11 @@
                 if (items.length === 0) break;
 
                 UserInterface.log('log', UserInterface.getText('PAGE_SCANNING', channel.name, pageNum, items.length));
-
+                
                 const uids = items.map(i => i.uid);
                 const ownershipStatus = await this.checkOwnership(uids);
-
-                // Only filter items that are explicitly owned (true).
-                // Items with false/undefined ownership status should be attempted.
+                
+                // Only filter items that are explicitly owned (true). 
                 let pendingItems = items.filter(item => ownershipStatus[item.uid] !== true);
 
                 RUNTIME_STATE.totalScanned += items.length;
@@ -759,11 +924,11 @@
                      pendingItems = pendingItems.filter(item => {
                          const rating = item.average_rating || item.averageRating || item.ratingScore;
                          const count = item.review_count || item.reviewCount || 0;
-
+                         
                          // Skip only if item has reviews AND rating is below threshold
                          if (count > 0 && rating !== undefined && rating < SCRIPT_SETTINGS.minRating) {
                              UserInterface.log('warn', UserInterface.getText('RATING_SKIPPED', item.title, rating.toFixed(1), count));
-                             return false;
+                             return false; 
                          }
                          return true;
                      });
@@ -796,37 +961,38 @@
         async claimItem(item) {
             try {
                 const details = await this.fetchWithRetry(`https://www.fab.com/i/listings/${item.uid}`);
-                if (!details || !details.licenses) {
-                    UserInterface.log('warn', UserInterface.getText('CLAIM_FETCH_DETAIL_FAIL', item.title));
-                    return;
+                if (!details || !details.licenses) { 
+                    UserInterface.log('warn', UserInterface.getText('CLAIM_FETCH_DETAIL_FAIL', item.title)); 
+                    return; 
                 }
-
+                
                 // Secondary Deep Rating Check (Double verification)
                 if (SCRIPT_SETTINGS.enableRatingFilter) {
                     const rating = details.averageRating || details.average_rating || 0;
                     const count = details.reviewCount || details.review_count || 0;
                     if (count > 0 && rating < SCRIPT_SETTINGS.minRating) {
                         UserInterface.log('warn', UserInterface.getText('RATING_SKIPPED', item.title, rating.toFixed(1), count));
-                        return;
+                        return; 
                     }
                 }
 
-                const freeLicense = details.licenses.find(l => l.priceTier?.price === 0 && l.slug === 'professional') ||
-                                    details.licenses.find(l => l.priceTier?.price === 0) ||
+                // FIX FOR UNITY (HTTP 400): Find ANY free license (price == 0), don't check name
+                const freeLicense = details.licenses.find(l => l.priceTier?.price === 0) || 
                                     details.licenses.find(l => l.discount?.amount === l.price);
-
-                if (!freeLicense) {
-                    UserInterface.log('warn', UserInterface.getText('CLAIM_NO_LICENSE', item.title));
-                    return;
+                                    
+                if (!freeLicense) { 
+                    UserInterface.log('warn', UserInterface.getText('CLAIM_NO_LICENSE', item.title)); 
+                    return; 
                 }
 
-                const formData = new FormData();
-                formData.append('offer_id', freeLicense.offerId);
+                // Use URLSearchParams to fix HTTP 400 in Unity Category
+                const params = new URLSearchParams();
+                params.append('offer_id', freeLicense.offerId);
 
                 const res = await fetch(`https://www.fab.com/i/listings/${item.uid}/add-to-library`, {
                     method: 'POST',
                     headers: { ...this.defaultHeaders, "accept": "application/json" },
-                    body: formData
+                    body: params
                 });
 
                 if (res.status === 204 || res.status === 200) {
@@ -839,8 +1005,8 @@
             } catch (e) {
                 UserInterface.log('error', UserInterface.getText('CLAIM_EXCEPTION', item.title, e.message || e));
                 RUNTIME_STATE.failedClaims++;
-            } finally {
-                UserInterface.updateDashboard();
+            } finally { 
+                UserInterface.updateDashboard(); 
             }
         },
 
@@ -850,8 +1016,8 @@
                 const query = uids.map(id => `listing_ids=${id}`).join('&');
                 const data = await this.fetchWithRetry(`https://www.fab.com/i/users/me/listings-states?${query}`);
                 return Array.isArray(data) ? data.reduce((acc, item) => ({ ...acc, [item.uid]: item.acquired }), {}) : {};
-            } catch (e) {
-                return {};
+            } catch (e) { 
+                return {}; 
             }
         },
 
@@ -860,43 +1026,45 @@
             for (let i = 0; i < retries; i++) {
                 try {
                     const res = await fetch(url, options);
-                    if (res.status === 401) {
-                        alert(UserInterface.getText('AUTH_SOUL_QUESTION'));
-                        throw new Error("Auth failed");
+                    
+                    if (res.status === 401) { 
+                        RUNTIME_STATE.isRunning = false;
+                        UserInterface.showAuthModal(); // Custom Modal
+                        throw new Error("Auth failed"); 
                     }
-                    if (res.status === 429) {
-                        const w = (i + 1) * 5000;
-                        UserInterface.log('warn', UserInterface.getText('RATE_LIMIT', w/1000));
-                        await this.sleep(w);
-                        continue;
+                    
+                    if (res.status === 429) { 
+                        const w = (i + 1) * 5000; 
+                        UserInterface.log('warn', UserInterface.getText('RATE_LIMIT', w/1000)); 
+                        await this.sleep(w); 
+                        continue; 
                     }
                     if (!res.ok) throw new Error(`HTTP ${res.status}`);
                     return await res.json();
-                } catch (e) {
-                    if (e.message.includes("Auth")) throw e;
-                    if (i === retries - 1) return null;
-                    await this.sleep(SCRIPT_SETTINGS.retry.delayMs);
+                } catch (e) { 
+                    if (e.message.includes("Auth")) throw e; 
+                    if (i === retries - 1) return null; 
+                    await this.sleep(SCRIPT_SETTINGS.retry.delayMs); 
                 }
             }
             return null;
         },
-
-        getCookie(name) {
-            const match = document.cookie.match(new RegExp('(^| )' + name + '=([^;]+)'));
-            return match ? match[2] : null;
+        
+        getCookie(name) { 
+            const match = document.cookie.match(new RegExp('(^| )' + name + '=([^;]+)')); 
+            return match ? match[2] : null; 
         },
-
-        sleep(ms) {
-            return new Promise(r => setTimeout(r, ms));
+        
+        sleep(ms) { 
+            return new Promise(r => setTimeout(r, ms)); 
         },
-
-        randomDelay() {
-            const { min, max } = SCRIPT_SETTINGS.requestDelay;
-            return Math.floor(Math.random() * (max - min + 1) + min);
+        
+        randomDelay() { 
+            const { min, max } = SCRIPT_SETTINGS.requestDelay; 
+            return Math.floor(Math.random() * (max - min + 1) + min); 
         }
     };
 
     // Initialize the script
     UserInterface.init();
 })();
-
