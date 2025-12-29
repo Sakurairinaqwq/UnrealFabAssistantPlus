@@ -6,9 +6,9 @@
 
 **UnrealFabAssistantPlus** is a powerful Tampermonkey userscript designed specifically for [Fab.com](https://www.fab.com/). It helps you **automatically scan** and **claim** free assets, adding them to your library effortlessly.
 
-This version (v1.0.0) introduces a **brand new Modern UI**, **Smart Rating Filters**, and significant stability improvements. It is an enhanced iteration based on the [RyensX/UnrealFabAssistant](https://github.com/RyensX/UnrealFabAssistant) project.
+This version (v1.0.1) introduces a **brand new Modern UI**, **Smart Rating Filters**, and significant stability improvements. It is an enhanced iteration based on the [RyensX/UnrealFabAssistant](https://github.com/RyensX/UnrealFabAssistant) project.
 
-### 🌟 Key Features (v1.0.0 Update)
+### 🌟 Key Features (v1.0.1 Update)
 
 * **🎨 Modern UI Design**:
 * **Glassmorphism**: A sleek, dark, semi-transparent interface that blends perfectly with the Fab website.
@@ -131,6 +131,6 @@ const SCRIPT_SETTINGS = {
 
 ---
 
-<p align="center">Enjoy your free assets with UnrealFabAssistantPlus v1.0.0!</p>
+<p align="center">Enjoy your free assets with UnrealFabAssistantPlus v1.0.1!</p>
 <p align="right">Project Iteration: Sakurairinaqwq</p>
 <p align="right">Original Author: RyensX</p>
