@@ -8,7 +8,7 @@
 
 本项目基于 [RyensX/UnrealFabAssistant](https://github.com/RyensX/UnrealFabAssistant) 进行深度迭代与重构，在此向原作者致敬。
 
-### 🌟 核心特性 (v1.0.0 更新)
+### 🌟 核心特性 (v1.0.1 更新)
 
 * **🎨 现代化 UI 设计**：
 * **毛玻璃特效 (Glassmorphism)**：深色半透明背景，完美融入 Fab 网站风格。
@@ -126,6 +126,6 @@ const SCRIPT_SETTINGS = {
 
 ---
 
-<p align="center">感谢使用 UnrealFabAssistantPlus v1.0.0！</p>
+<p align="center">感谢使用 UnrealFabAssistantPlus v1.0.1！</p>
 <p align="right">Project Iteration: Sakurairinaqwq</p>
 <p align="right">Original Author: RyensX</p>
