@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         UnrealFabAssistantPlus
 // @namespace    https://github.com/Sakurairinaqwq/UnrealFabAssistantPlus
-// @version      v3.2.2
+// @version      v1.0.0
 // @description  Fab.com Free Asset Auto-Claim Helper Plus
 // @author       Sakurairinaqwq (It is an iteration based on https://github.com/RyensX/UnrealFabAssistant Thanks to https://github.com/RyensX)
 // @match        https://www.fab.com/*
@@ -899,3 +899,4 @@
     // Initialize the script
     UserInterface.init();
 })();
+
