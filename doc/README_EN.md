@@ -131,6 +131,6 @@ const SCRIPT_SETTINGS = {
 
 ---
 
-<p align="center">Enjoy your free assets with UnrealFabAssistantPlus v3.6.0!</p>
+<p align="center">Enjoy your free assets with UnrealFabAssistantPlus v1.0.0!</p>
 <p align="right">Project Iteration: Sakurairinaqwq</p>
 <p align="right">Original Author: RyensX</p>
