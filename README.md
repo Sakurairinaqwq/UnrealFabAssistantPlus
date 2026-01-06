@@ -8,7 +8,7 @@
 
 本项目基于 [RyensX/UnrealFabAssistant](https://github.com/RyensX/UnrealFabAssistant) 进行深度迭代与重构，在此向原作者致敬。
 
-### 核心特性 (v1.2.0 更新)
+### 核心特性
 
 * ** 现代化 UI 设计**：
 * **毛玻璃特效 (Glassmorphism)**：深色半透明背景，完美融入 Fab 网站风格。
