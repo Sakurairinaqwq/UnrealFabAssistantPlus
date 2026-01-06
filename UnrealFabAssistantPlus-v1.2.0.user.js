@@ -1,8 +1,8 @@
 // ==UserScript==
 // @name         UnrealFabAssistantPlus
 // @namespace    https://github.com/Sakurairinaqwq/UnrealFabAssistantPlus
-// @version      v1.1.0
-// @description  Fab.com Free Asset Auto-Claim Helper Plus (No-Flicker Animation)
+// @version      v1.2.0
+// @description  Fab.com Free Asset Auto-Claim Helper Plus (No-Flicker Animation) - Quixel Fix
 // @author       Sakurairinaqwq (It is an iteration based on https://github.com/RyensX/UnrealFabAssistant Thanks to https://github.com/RyensX)
 // @match        https://www.fab.com/*
 // @grant        none
@@ -13,7 +13,7 @@
 (function () {
     'use strict';
 
-    console.log("[UnrealFabAssistantPlus] v1.1.0 Initializing...");
+    console.log("[UnrealFabAssistantPlus] v1.2.0 Initializing...");
 
     // ==========================================
     // Localization Configuration
@@ -51,7 +51,8 @@
             CLAIM_SUCCESS: (title) => `   ✅ Added: ${title}`,
             CLAIM_FAILED: (status, title) => `   ❌ Error (${status}): ${title}`,
             ALL_FINISHED: (count) => `\n🎉 Finished! Total Claimed: ${count}`,
-            RELOAD_PROMPT: 'Done. Please refresh.'
+            RELOAD_PROMPT: 'Done. Please refresh.',
+            DEBUG_URL: (url) => `   🔧 API URL: ${url}`
         },
         'zh-CN': {
             TITLE: '⚡ FAB 助手 Pro',
@@ -85,7 +86,8 @@
             CLAIM_SUCCESS: (title) => `   ✅ 成功入库：${title}`,
             CLAIM_FAILED: (status, title) => `   ❌ 失败 (${status})：${title}`,
             ALL_FINISHED: (count) => `\n🎉 任务完成！本次入库：${count} 个`,
-            RELOAD_PROMPT: '运行结束！建议刷新页面。'
+            RELOAD_PROMPT: '运行结束！建议刷新页面。',
+            DEBUG_URL: (url) => `   🔧 调试链接: ${url}`
         }
     };
 
@@ -109,11 +111,13 @@
         retry: { limit: 3, delayMs: 2000 }
     };
 
+    // FIXED: Changed Quixel to use 'search' type to avoid 0 results issue
     const CHANNEL_LIST = [
-        { name: 'Unreal Engine', urlParam: 'unreal-engine', isFree: true, isDefaultChecked: true },
-        { name: 'Unity', urlParam: 'unity', isFree: true, isDefaultChecked: true },
-        { name: 'UEFN', urlParam: 'uefn', isFree: true, isDefaultChecked: true },
-        { name: 'MetaHuman', urlParam: 'metahuman', isFree: true, isDefaultChecked: false }
+        { name: 'Unreal Engine', urlParam: 'unreal-engine', type: 'channel', isFree: true, isDefaultChecked: true },
+        { name: 'Quixel Megascans', urlParam: 'Quixel Megascans', type: 'search', isFree: true, isDefaultChecked: true }, // Changed type to 'search'
+        { name: 'Unity', urlParam: 'unity', type: 'channel', isFree: true, isDefaultChecked: true },
+        { name: 'UEFN', urlParam: 'uefn', type: 'channel', isFree: true, isDefaultChecked: true },
+        { name: 'MetaHuman', urlParam: 'metahuman', type: 'channel', isFree: true, isDefaultChecked: false }
     ];
 
     // ==========================================
@@ -202,7 +206,7 @@
     };
 
     // ==========================================
-    // UI Controller (No-Flicker Fix)
+    // UI Controller
     // ==========================================
     const UserInterface = {
         rootElement: null,
@@ -266,19 +270,14 @@
                     overflow: hidden;
                     animation: fh-pop-in 0.4s cubic-bezier(0.19, 1, 0.22, 1) forwards;
                     color: #fff;
-
-                    /* Optimization hints */
                     will-change: width, height, border-radius;
-
-                    /* Smooth Transitions */
                     transition:
-                        width 0.4s cubic-bezier(0.34, 1.56, 0.64, 1), /* Bouncy effect */
+                        width 0.4s cubic-bezier(0.34, 1.56, 0.64, 1),
                         height 0.4s cubic-bezier(0.34, 1.56, 0.64, 1),
                         border-radius 0.4s ease,
                         background 0.4s;
                 }
 
-                /* --- Minimized State Logic --- */
                 #fab-helper-root.minimized {
                     width: 60px !important;
                     height: 60px !important;
@@ -289,16 +288,14 @@
                     border-color: transparent;
                 }
 
-                /* FIX 1: Lock Inner Width to prevent text reflow flickering */
                 .fh-content-wrapper, .fh-header {
                     width: var(--fh-width);
-                    min-width: var(--fh-width); /* Crucial: stops compression */
+                    min-width: var(--fh-width);
                     transition: opacity 0.2s ease, visibility 0.2s;
                     opacity: 1;
                     visibility: visible;
                 }
 
-                /* FIX 2: Smoothly fade out content */
                 #fab-helper-root.minimized .fh-content-wrapper,
                 #fab-helper-root.minimized .fh-header {
                     opacity: 0;
@@ -306,7 +303,6 @@
                     pointer-events: none;
                 }
 
-                /* Icon Logic */
                 #fab-helper-root::after {
                     content: '⚡';
                     position: absolute;
@@ -325,7 +321,6 @@
                     animation: fh-pulse 2s infinite 0.5s;
                 }
 
-                /* --- Inner Layout --- */
                 .fh-header {
                     padding: 18px 24px;
                     display: flex;
@@ -667,15 +662,41 @@
             let nextCursor = null;
             let pageNum = 1;
             let emptyPagesCount = 0;
-            const baseUrl = `https://www.fab.com/i/listings/search?channels=${channel.urlParam}&is_free=${channel.isFree ? 1 : 0}&sort_by=-createdAt`;
+
+            // FIXED: Logic to handle search query vs channels to ensure results
+            let baseUrl = `https://www.fab.com/i/listings/search?is_free=${channel.isFree ? 1 : 0}&sort_by=-createdAt`;
+            if (channel.type === 'search') {
+                 // Using 'q' is much more reliable than 'seller' which needs UUIDs sometimes
+                 baseUrl += `&q=${encodeURIComponent(channel.urlParam)}`;
+            } else {
+                 baseUrl += `&channels=${channel.urlParam}`;
+            }
+
             do {
                 if (!RUNTIME_STATE.isRunning) break;
                 const url = `${baseUrl}${nextCursor ? `&cursor=${nextCursor}` : ''}`;
+                // DEBUG: Log the URL to console (hidden from UI but visible in F12)
+                console.log(`[UnrealFabAssistantPlus] Fetching: ${url}`);
+
                 const data = await this.fetchWithRetry(url);
-                if (!data || !data.results) { UserInterface.log('error', UserInterface.getText('PAGE_FAILED', channel.name)); break; }
+                if (!data || !data.results) {
+                    UserInterface.log('error', UserInterface.getText('PAGE_FAILED', channel.name));
+                    UserInterface.log('info', UserInterface.getText('DEBUG_URL', url));
+                    break;
+                }
+
                 nextCursor = data.cursors?.next;
                 const items = data.results;
-                if (items.length === 0) break;
+
+                if (items.length === 0) {
+                     // If first page is empty, it means search failed
+                     if (pageNum === 1) {
+                         UserInterface.log('warn', `Found 0 items. Check channel/search config.`);
+                         UserInterface.log('info', UserInterface.getText('DEBUG_URL', url));
+                     }
+                     break;
+                }
+
                 UserInterface.log('log', UserInterface.getText('PAGE_SCANNING', channel.name, pageNum, items.length));
                 const uids = items.map(i => i.uid);
                 const ownershipStatus = await this.checkOwnership(uids);
